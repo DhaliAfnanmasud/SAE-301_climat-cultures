@@ -14,3 +14,6 @@ __pycache__/
 # Fichiers système 
 .DS_Store
 Thumbs.db
+
+# Ignore les journaux IA individuels
+docs/JOURNAL-IA-*.md
