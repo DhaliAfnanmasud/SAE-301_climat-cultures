@@ -41,12 +41,13 @@ _Aucun assistant ambiant utilisé ? Écrivez-le explicitement : « Aucun » — 
 
 ## Journal
 
-| Date  | Équipier | Outil/modèle | Tâche / contexte    | Prompt (résumé)                                 | Sortie IA        | Gardé/modifié/rejeté | Justification (vérif. / correction / test)                                                | Tokens (≈) |
-| ----- | -------- | ------------ | ------------------- | ----------------------------------------------- | ---------------- | -------------------- | ----------------------------------------------------------------------------------------- | ---------- |
-| 12/10 | Léa      | Haiku 4.5    | requête SQL des GDD | « somme des T° > 10 °C par culture et commune » | requête proposée | **modifié**          | jointure fausse sur `Dim_Temps` corrigée ; index ajouté ; testée sur commune X → cohérent | ~1 900     |
-|       |          |              |                     |                                                 |                  |                      |                                                                                           |            |
-|       |          |              |                     |                                                 |                  |                      |                                                                                           |            |
-|       |          |              |                     |                                                 |                  |                      |                                                                                           |            |
+| Date | Équipier | Outil / modèle | Tâche / contexte | Prompt (résumé) | Sortie IA | Gardé / modifié / rejeté | Justification (vérification / correction / test) | Tokens (≈) |
+| ---- | -------- | -------------- | ---------------- | --------------- | --------- | ------------------------ | ------------------------------------------------ | ---------- |
+|      |          |                |                  |                 |           |                          |                                                  |            |
+|      |          |                |                  |                 |           |                          |                                                  |            |
+|      |          |                |                  |                 |           |                          |                                                  |            |
+|      |          |                |                  |                 |           |                          |                                                  |            |
+|      |          |                |                  |                 |           |                          |                                                  |            |
 
 _(Ajoutez autant de lignes que nécessaire.)_
 
