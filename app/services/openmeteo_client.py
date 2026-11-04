@@ -12,6 +12,7 @@ VARIABLES = (
     "precipitation_sum"
 )
 
+# Référentiel de communes utilisé temporairement en attendant le branchement de Dim_Commune dans la base de données.
 FICHIER_COMMUNES = (
     Path(__file__).resolve().parents[2]
     / "data"
@@ -66,8 +67,13 @@ def recuperer_climat(latitude, longitude, modele, date_debut, date_fin):
 
 
 def valider_commune(code_insee):
-    with open(FICHIER_COMMUNES, "r", encoding="utf-8") as fichier:
-        lecteur = csv.DictReader(fichier, delimiter=";")
+    with open(
+        FICHIER_COMMUNES,
+        "r",
+        encoding="utf-8-sig"
+    ) as fichier:
+
+        lecteur = csv.DictReader(fichier)
 
         for commune in lecteur:
             if commune["code_insee"] == str(code_insee):
