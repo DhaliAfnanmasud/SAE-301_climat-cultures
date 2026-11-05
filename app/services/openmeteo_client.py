@@ -29,6 +29,9 @@ def valider_dates(date_debut, date_fin):
     try:
         debut = date.fromisoformat(date_debut)
         fin = date.fromisoformat(date_fin)
+
+        if debut.isoformat() != date_debut or fin.isoformat() != date_fin:
+            raise ValueError("Format de date invalide.")
     except (TypeError, ValueError):
         raise ValueError("Les dates doivent être au format YYYY-MM-DD.")
 
@@ -66,7 +69,7 @@ def recuperer_climat(latitude, longitude, modele, date_debut, date_fin):
     return reponse.json()["daily"]
 
 
-def valider_commune(code_insee):
+def valider_commune(id_commune):
     with open(
         FICHIER_COMMUNES,
         "r",
@@ -76,14 +79,14 @@ def valider_commune(code_insee):
         lecteur = csv.DictReader(fichier)
 
         for commune in lecteur:
-            if commune["code_insee"] == str(code_insee):
+            if commune["id_commune"] == str(id_commune):
                 return commune
 
     raise ValueError("Commune inconnue.")
 
 
-def recuperer_climat_commune(code_insee, modele, date_debut, date_fin):
-    commune = valider_commune(code_insee)
+def recuperer_climat_commune(id_commune, modele, date_debut, date_fin):
+    commune = valider_commune(id_commune)
 
     latitude = float(commune["latitude"])
     longitude = float(commune["longitude"])
