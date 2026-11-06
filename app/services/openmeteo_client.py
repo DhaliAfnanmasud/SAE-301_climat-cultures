@@ -141,8 +141,8 @@ def recuperer_climat(latitude, longitude, modele, date_debut, date_fin):
                 
               
 
-def recuperer_climat_commune(code_insee, modele, date_debut, date_fin):
-    commune = valider_commune(code_insee)
+def recuperer_climat_commune(id_commune, modele, date_debut, date_fin):
+    commune = valider_commune(id_commune)
 
     latitude = float(commune["latitude"])
     longitude = float(commune["longitude"])
