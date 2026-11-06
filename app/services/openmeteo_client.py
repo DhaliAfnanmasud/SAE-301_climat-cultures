@@ -3,7 +3,8 @@ import requests
 from datetime import date
 import csv
 from pathlib import Path
-from requests.exceptions import Timeout, RequestException
+from requests.exceptions import RequestException
+from app.services.cache import ecrire_cache, generer_cle_cache, lire_cache
 
 ENDPOINT = "https://climate-api.open-meteo.com/v1/climate"
 
@@ -76,6 +77,12 @@ def recuperer_climat(latitude, longitude, modele, date_debut, date_fin):
         "timezone": TIMEZONE,
     }
 
+    cle = generer_cle_cache(parametres)
+    donnees_cache = lire_cache(cle)
+
+    if donnees_cache is not None:
+        return donnees_cache
+
     max_retries = 2 # 3 tentatives au total (1 tentative initial + 2 réessai)
     tentative = 0
 
@@ -101,8 +108,9 @@ def recuperer_climat(latitude, longitude, modele, date_debut, date_fin):
                     if not valeurs or all(valeur is None for valeur in valeurs):
                         raise RuntimeError("Données indisponibles pour ce modèle.")
 
+                ecrire_cache(cle, daily)
                 return daily
-
+            
             # En cas d'erreur avec le Code 429
             if reponse.status_code == 429:
                 if "Daily API request limit exceeded" in reponse.text:
