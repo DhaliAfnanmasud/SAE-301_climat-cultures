@@ -75,69 +75,70 @@ def recuperer_climat(latitude, longitude, modele, date_debut, date_fin):
         "daily": VARIABLES,
         "timezone": TIMEZONE,
     }
-    
+
     max_retries = 2 # 3 tentatives au total (1 tentative initial + 2 réessai)
     tentative = 0
-    
+
     while tentative <= max_retries:
         try:
             reponse = requests.get(
-                    ENDPOINT,
-                    params=parametres,
-                    timeout=30
-                )
-            
+                ENDPOINT,
+                params=parametres,
+                timeout=30
+            )
+
             # En cas de succès (Code 200)
             if reponse.status_code == 200:
                 donnees = reponse.json()
-                if "daily" not in donnees:
-                    print("Données indisponibles pour ce modèle")
-                    return None
-                return donnees["daily"]
-            
+                daily = donnees.get("daily")
+
+                if not daily or not daily.get("time"):
+                    raise RuntimeError("Données indisponibles pour ce modèle.")
+
+                for variable in VARIABLES.split(","):
+                    valeurs = daily.get(variable)
+
+                    if not valeurs or all(valeur is None for valeur in valeurs):
+                        raise RuntimeError("Données indisponibles pour ce modèle.")
+
+                return daily
+
             # En cas d'erreur avec le Code 429
             if reponse.status_code == 429:
-                erreur_texte = reponse.text
-                if "Daily API request limit exceeded" in erreur_texte:
-                    print("Erreur 429 : Quota journalier dépassé. Arrêt immédiat.")
-                    return None
-                else:
-                    if tentative == 0:
-                        print("Erreur 429 (saturation). Nouvelle tentative dans 2 secondes...")
-                        time.sleep(2)
-                        tentative += 1
-                        continue
-                    else:
-                        print("Service saturé, réessayez plus tard.")
-                        return None
-            
+                if "Daily API request limit exceeded" in reponse.text:
+                    raise RuntimeError(
+                        "Quota journalier dépassé, réessayez demain."
+                    )
+
+                if tentative == 0:
+                    print("Erreur 429 (saturation). Nouvelle tentative dans 2 secondes...")
+                    time.sleep(2)
+                    tentative += 1
+                    continue
+
+                raise RuntimeError("Service saturé, réessayez plus tard.")
+
             # Gestions des erreurs avec le code serveur 5xx
-            elif reponse.status_code >= 500:
+            if reponse.status_code >= 500:
                 if tentative < max_retries:
                     print(f"Erreur serveur {reponse.status_code}. Tentative ({tentative + 1}/{max_retries + 1})...")
                     tentative += 1
                     time.sleep(1)
                     continue
-                else:
-                    print("Service indisponible")
-                    return None
-            else:
-                print(f"Erreur client reçue : {reponse.status_code}")
-                return None
-        
-        except(Timeout, RequestException) as e:
+
+                raise RuntimeError("Service indisponible.")
+
+            raise RuntimeError(f"Erreur de requête : {reponse.status_code}.")
+
+        except RequestException:
             # Si il y a des problèmes réseau ou de timeout
             if tentative < max_retries:
                 print(f"Problème réseau ou timeout. Tentative ({tentative + 1}/{max_retries + 1})...")
                 tentative += 1
                 time.sleep(1)
                 continue
-            else:
-                print("Service indisponible")
-                return None
-    
-    print("Service indisponible")
-    return None
+
+            raise RuntimeError("Service indisponible.")
                 
               
 
