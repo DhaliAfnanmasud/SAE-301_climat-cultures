@@ -15,6 +15,14 @@ VARIABLES = (
     "precipitation_sum"
 )
 
+# Correspondance : clé Open-Meteo -> nom de colonne du contrat d'interface
+CHAMPS_CONTRAT = {
+    "temperature_2m_min": "t_min",
+    "temperature_2m_max": "t_max",
+    "temperature_2m_mean": "t_moy",
+    "precipitation_sum": "precip",
+}
+
 # Référentiel de communes utilisé temporairement en attendant le branchement de Dim_Commune dans la base de données.
 FICHIER_COMMUNES = (
     Path(__file__).resolve().parents[2]
@@ -149,17 +157,55 @@ def recuperer_climat(latitude, longitude, modele, date_debut, date_fin):
             raise RuntimeError("Service indisponible.")
                 
               
+# Fonction inutilisé : à garder pour les tests ou à supprimer plus tard
+#def recuperer_climat_commune(id_commune, modele, date_debut, #date_fin):
+#    commune = valider_commune(id_commune)
+#
+#    latitude = float(commune["latitude"])
+#    longitude = float(commune["longitude"])
+#
+#    return recuperer_climat(
+#        latitude,
+#        longitude,
+#        modele,
+#        date_debut,
+#        date_fin
+#    )
 
-def recuperer_climat_commune(id_commune, modele, date_debut, date_fin):
+# Tache 5 -------------------------------------------------------- 
+
+def transformer_reponse(daily):
+    """
+    Convertit les tableaux parallèles de `daily` en liste de dicts :
+    {date, t_min, t_max, t_moy, precip}.
+    Une valeur manquante reste None (null en JSON), on n'invente rien.
+    """
+    dates  = daily.get("time") or []
+    series = []
+    
+    for i, jour in enumerate(dates):
+        ligne = {"date": jour}
+        
+        for cle_api, champ in CHAMPS_CONTRAT.items():
+            valeurs = daily.get(cle_api) or []
+            if i < len(valeurs):
+                ligne[champ] = valeurs[i] 
+            else:
+                ligne[champ] = None
+        
+        series.append(ligne)
+    
+    return series
+
+def recuperer_series_commune(id_commune, modele, date_debut, date_fin):
     commune = valider_commune(id_commune)
-
     latitude = float(commune["latitude"])
     longitude = float(commune["longitude"])
-
-    return recuperer_climat(
-        latitude,
-        longitude,
-        modele,
-        date_debut,
-        date_fin
-    )
+    
+    daily = recuperer_climat(latitude, longitude, modele, date_debut, date_fin)
+    
+    return {
+        "id_commune": int(commune["id_commune"]),
+        "latitude": latitude,
+        "series": transformer_reponse(daily),
+    }
