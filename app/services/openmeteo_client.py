@@ -180,28 +180,38 @@ def transformer_reponse(daily):
     {date, t_min, t_max, t_moy, precip}.
     Une valeur manquante reste None (null en JSON), on n'invente rien.
     """
+    # on transforme les tableaux parallèles en liste de jours. Si time est absent ou vide, on prend une liste vide, et la fonction renverra [] sans planter.
     dates  = daily.get("time") or []
     series = []
     
+    # pour chaque date, i est sa position (0, 1, 2…).
     for i, jour in enumerate(dates):
+        # on crée donc un dictionnaire qui contient d’abord la date
         ligne = {"date": jour}
         
+        # CHAMPS_CONTRAT fait la traduction entre le nom d’Open-Meteo et le nom du contrat (temperature_2m_min devient t_min)
         for cle_api, champ in CHAMPS_CONTRAT.items():
             valeurs = daily.get(cle_api) or []
             if i < len(valeurs):
                 ligne[champ] = valeurs[i] 
             else:
+                # si le tableau est plus court que prévu, on met None, ce qui donnera null en JSON
                 ligne[champ] = None
         
+        # on ajoute le jour à la liste
         series.append(ligne)
     
+    # on retourne la liste complète
     return series
 
 def recuperer_series_commune(id_commune, modele, date_debut, date_fin):
+    # cherche la commune dans le CSV et lève une erreur si elle n'existe pas 
     commune = valider_commune(id_commune)
+    # on convertit le texte du CSV en nombre
     latitude = float(commune["latitude"])
     longitude = float(commune["longitude"])
     
+    # renvoie le bloc daily
     daily = recuperer_climat(latitude, longitude, modele, date_debut, date_fin)
     
     return {
