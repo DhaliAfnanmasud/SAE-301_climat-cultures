@@ -28,7 +28,7 @@ FICHIER_COMMUNES = (
     Path(__file__).resolve().parents[2]
     / "data"
     / "communes-reference.csv"
-)
+)   
 
 TIMEZONE = "Europe/Paris"
 ANNEE_MIN = 1950
