@@ -1,9 +1,10 @@
 import time
 import requests
-from datetime import date
 import csv
+
+from datetime import date
 from pathlib import Path
-from requests.exceptions import RequestException
+from requests.exceptions import Timeout, RequestException
 from app.services.cache import ecrire_cache, generer_cle_cache, lire_cache
 
 ENDPOINT = "https://climate-api.open-meteo.com/v1/climate"
@@ -157,23 +158,20 @@ def recuperer_climat(latitude, longitude, modele, date_debut, date_fin):
             raise RuntimeError("Service indisponible.")
                 
               
-# Fonction inutilisé : à garder pour les tests ou à supprimer plus tard
-#def recuperer_climat_commune(id_commune, modele, date_debut, #date_fin):
-#    commune = valider_commune(id_commune)
-#
-#    latitude = float(commune["latitude"])
-#    longitude = float(commune["longitude"])
-#
-#    return recuperer_climat(
-#        latitude,
-#        longitude,
-#        modele,
-#        date_debut,
-#        date_fin
-#    )
-
 def recuperer_climat_commune(id_commune, modele, date_debut, date_fin):
     commune = valider_commune(id_commune)
+
+    latitude = float(commune["latitude"])
+    longitude = float(commune["longitude"])
+
+    return recuperer_climat(
+        latitude,
+        longitude,
+        modele,
+        date_debut,
+        date_fin
+    )
+
 
 def transformer_reponse(daily):
     """
