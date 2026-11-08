@@ -17,3 +17,6 @@ Thumbs.db
 
 # Ignore les journaux IA individuels
 docs/JOURNAL-IA-*.md
+
+# Ignore le cache
+cache_dev.db
