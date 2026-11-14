@@ -17,7 +17,7 @@ def test_format_contrat_dev_data():
         "time": ["2049-01-01"],
         "temperature_2m_min": [5.0],
         "temperature_2m_max": [12.0],
-        "temperature_2m_mean": [8.5],
+        "temperature_2m_mean": [8.5],   
         "precipitation_sum": [0.1],
     }
 
