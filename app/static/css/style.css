@@ -1,0 +1,26 @@
+:root {
+    --cc-fond: #080f0a;
+    --cc-vert-fonce: #113d31;
+    --cc-vert-carte: #0c281c;
+    --cc-vert-bouton: #54725b;
+    --cc-vert-vif: #4baf50;
+    --cc-clair: #e8efe6;
+    --cc-clair-2: #f2f6f0;
+}
+
+.navbar.navbar-climat {
+    background-color: var(--cc-fond);
+    --bs-navbar-color: #ffffff;
+    --bs-navbar-hover-color: var(--cc-vert-vif);
+    --bs-navbar-active-color: #ffffff;
+}
+
+.navbar-climat .nav-link {
+    font-weight: 600;
+}
+
+.navbar-climat .nav-link.active {
+    text-decoration: underline;
+    text-decoration-thickness: 2px;
+    text-underline-offset: 0.5rem;
+}
