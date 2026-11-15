@@ -1,0 +1,53 @@
+<footer class="footer-climat">
+    <div class="container py-5">
+        <div class="row gy-4">
+
+            <div class="col-lg-6">
+                <a href="{{ url_for('main.home') }}">
+                    <img src="{{ url_for('static', filename='img/logo_Climats_et_Cultures.svg') }}"
+                         alt="Climat & Cultures — retour à l'accueil" height="56">
+                </a>
+                <p class="footer-texte mt-3 mb-4">
+                    Comprendre les liens vivants entre environnement,<br>patrimoines et sociétés.
+                </p>
+                <ul class="list-inline mb-0">
+                    <li class="list-inline-item">
+                        <a href="https://github.com/DhaliAfnanmasud/SAE-301_climat-cultures"
+                           target="_blank" rel="noopener noreferrer"
+                           class="footer-icone" aria-label="Dépôt GitHub du projet">
+                            <i class="bi bi-github" aria-hidden="true"></i>
+                        </a>
+                    </li>
+                </ul>
+            </div>
+
+            <div class="col-6 col-lg-3">
+                <nav aria-label="Pages principales">
+                    <ul class="list-unstyled footer-liens">
+                        <li><a href="{{ url_for('main.home') }}">Accueil</a></li>
+                        <li><a href="#">Tableau de bord</a></li>
+                        <li><a href="{{ url_for('main.carte') }}">Carte</a></li>
+                        <li><a href="{{ url_for('auth.connexion') }}">Se connecter</a></li>
+                    </ul>
+                </nav>
+            </div>
+
+            <div class="col-6 col-lg-3">
+                <nav aria-label="Informations">
+                    <ul class="list-unstyled footer-liens">
+                        <li><a href="{{ url_for('main.assistance') }}">Assistance</a></li>
+                        <li><a href="{{ url_for('main.faq') }}">FAQ</a></li>
+                        <li><a href="{{ url_for('main.contact') }}">Contact</a></li>
+                        <li><a href="{{ url_for('main.rgpd') }}">RGPD</a></li>
+                    </ul>
+                </nav>
+            </div>
+
+        </div>
+
+        <p class="footer-texte small mt-4 mb-0">
+            Climat&amp;Cultures · Projet éditorial SAÉ 3.01 · 2026 ·
+            Données climatiques : <a href="https://open-meteo.com/" target="_blank" rel="noopener noreferrer">Open-Meteo</a>
+        </p>
+    </div>
+</footer>

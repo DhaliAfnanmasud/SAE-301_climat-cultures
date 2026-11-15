@@ -24,3 +24,40 @@
     text-decoration-thickness: 2px;
     text-underline-offset: 0.5rem;
 }
+
+.footer-climat {
+    background-color: var(--cc-vert-carte);
+    background-image:
+        linear-gradient(rgba(8, 15, 10, 0.6), rgba(8, 15, 10, 0.6)),
+        url('../img/image_fond.jpg');
+    background-size: cover;
+    background-position: center;
+    color: #ffffff;
+}
+
+.footer-climat a {
+    color: #ffffff;
+    text-decoration: none;
+}
+
+.footer-climat a:hover,
+.footer-climat a:focus-visible {
+    color: var(--cc-vert-vif);
+}
+
+.footer-texte {
+    color: rgba(255, 255, 255, 0.8);
+}
+
+.footer-liens li {
+    margin-bottom: 0.75rem;
+}
+
+.footer-liens a {
+    font-weight: 600;
+    font-size: 1.1rem;
+}
+
+.footer-icone {
+    font-size: 1.75rem;
+}
