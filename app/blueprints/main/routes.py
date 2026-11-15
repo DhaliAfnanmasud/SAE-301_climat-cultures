@@ -1,10 +1,37 @@
-from flask import jsonify, request
+from flask import jsonify, request, render_template
 from app.blueprints.main import main_bp
 from app.services.openmeteo_client import recuperer_series_commune
 
+
 @main_bp.route('/')
 def home():
-    return "<h1>Hello World !</h1>"
+    return render_template('main/index.html')
+
+
+@main_bp.route('/carte')
+def carte():
+    return render_template('main/carte.html')
+
+
+@main_bp.route('/faq')
+def faq():
+    return render_template('main/faq.html')
+
+
+@main_bp.route('/contact')
+def contact():
+    return render_template('main/contact.html')
+
+
+@main_bp.route('/assistance')
+def assistance():
+    return render_template('main/assistance.html')
+
+
+@main_bp.route('/rgpd')
+def rgpd():
+    return render_template('main/rgpd.html')
+
 
 @main_bp.route('/api/health')
 def health():
