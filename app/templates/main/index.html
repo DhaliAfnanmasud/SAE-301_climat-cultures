@@ -1,7 +1,22 @@
 {% extends 'base.html' %}
 
 {% block content %}
-<div class="container py-4">
-    <h1>Test base.html</h1>
-</div>
+<section class="container py-5 text-center">
+    <p class="text-uppercase small fw-semibold text-secondary mb-2">SAÉ 3.01</p>
+    <h1 class="display-4 fw-bold">Climat &amp; Cultures</h1>
+    <p class="lead accueil-texte mt-3">
+        Découvrez comment le changement climatique pourrait affecter les cultures
+        agricoles de votre commune dans les prochaines décennies.
+    </p>        
+    <a href="#" class="btn btn-climat btn-lg mt-3">Accéder au tableau de bord</a>
+</section>
+
+<section class="container pb-5">
+    <p class="small text-secondary accueil-texte text-center">
+        <i class="bi bi-info-circle" aria-hidden="true"></i>
+        Les données présentées sont des <strong>projections</strong> issues de modèles climatiques,
+        et non des prédictions certaines. Elles reposent sur un scénario d'émissions élevé
+        et comportent une part d'incertitude.
+    </p>
+</section>
 {% endblock %}

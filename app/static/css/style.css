@@ -61,3 +61,22 @@
 .footer-icone {
     font-size: 1.75rem;
 }
+
+.btn-climat {
+    --bs-btn-color: #ffffff;
+    --bs-btn-bg: var(--cc-vert-bouton);
+    --bs-btn-border-color: var(--cc-vert-bouton);
+    --bs-btn-hover-color: #ffffff;
+    --bs-btn-hover-bg: var(--cc-vert-fonce);
+    --bs-btn-hover-border-color: var(--cc-vert-fonce);
+    --bs-btn-active-color: #ffffff;
+    --bs-btn-active-bg: var(--cc-vert-fonce);
+    --bs-btn-active-border-color: var(--cc-vert-fonce);
+    --bs-btn-focus-shadow-rgb: 84, 114, 91;
+}
+
+.accueil-texte {
+    max-width: 40rem;
+    margin-left: auto;
+    margin-right: auto;
+}
