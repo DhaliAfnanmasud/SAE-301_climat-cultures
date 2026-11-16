@@ -1,0 +1,101 @@
+{% extends 'base.html' %}
+
+{% block title %}Résultat | Climat &amp; Cultures{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+
+    <h1>Résultat de l'analyse</h1>
+
+    {% if erreur %}
+    {# Cas d'erreur : message clair + possibilité de réessayer #}
+    <div class="alert alert-danger mt-4" role="alert">
+        <i class="bi bi-exclamation-triangle" aria-hidden="true"></i>
+        {{ erreur }}
+    </div>
+
+    <a href="{{ request.full_path }}" class="btn btn-climat">
+        <i class="bi bi-arrow-clockwise" aria-hidden="true"></i> Réessayer
+    </a>
+    <a href="{{ url_for('main.home') }}" class="btn btn-outline-secondary">Retour à l'accueil</a>
+
+    {% else %}
+    {# Rappel du choix de l'utilisateur #}
+    <dl class="row mt-4">
+        <dt class="col-sm-3">Commune</dt>
+        <dd class="col-sm-9">{{ nom_commune }}</dd>
+        <dt class="col-sm-3">Culture</dt>
+        <dd class="col-sm-9">{{ nom_culture }}</dd>
+        <dt class="col-sm-3">Horizon</dt>
+        <dd class="col-sm-9">{{ libelle_horizon }}</dd>
+    </dl>
+
+    {# Aperçu des séries climatiques (Chart.js) #}
+    <figure class="mt-4">
+        <div style="position: relative; height: 420px;">
+            <canvas id="graphique-climat" role="img"
+                    aria-label="Températures minimale, moyenne et maximale mensuelles et cumul de précipitations pour {{ nom_commune }}, {{ libelle_horizon }}"></canvas>
+        </div>
+
+        <figcaption class="text-muted mt-2">
+            Moyennes mensuelles calculées à partir de {{ nb_jours }} jours de données climatiques simulées.
+        </figcaption>
+    </figure>
+
+    {# Emplacement réservé pour l'indicateur de DATA (J3.3) #}
+    <div class="alert alert-info mt-4" role="status">
+        <i class="bi bi-hourglass-split" aria-hidden="true"></i>
+        Indicateur : bientôt disponible.
+    </div>
+
+    <a href="{{ url_for('main.home') }}" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left" aria-hidden="true"></i> Retour à l'accueil
+    </a>
+    {% endif %}
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+{% if not erreur %}
+
+{# Données du graphique, injectées en JSON sûr (échappé par Jinja) #}
+<script id="donnees-climat" type="application/json">{{ donnees|tojson }}</script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+<script>
+    const donnees = JSON.parse(document.getElementById('donnees-climat').textContent);
+
+    new Chart(document.getElementById('graphique-climat'), {
+        data: {
+            labels: donnees.labels,
+            datasets: [
+                // Précipitations en barres, sur l'axe de droite
+                {
+                    type: 'bar', label: 'Précipitations (mm/mois)', data: donnees.precip,
+                    backgroundColor: 'rgba(84, 114, 91, 0.35)', yAxisID: 'yPrecip'
+                },
+                // Températures en lignes, sur l'axe de gauche
+                { type: 'line', label: 'Température max (°C)', data: donnees.t_max,
+                  borderColor: '#d9534f', pointRadius: 0, yAxisID: 'yTemp' },
+                { type: 'line', label: 'Température moyenne (°C)', data: donnees.t_moy,
+                  borderColor: '#4baf50', pointRadius: 0, yAxisID: 'yTemp' },
+                { type: 'line', label: 'Température min (°C)', data: donnees.t_min,
+                  borderColor: '#4f8fc0', pointRadius: 0, yAxisID: 'yTemp' }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: { mode: 'index', intersect: false },
+            scales: {
+                x: { ticks: { maxTicksLimit: 12 } },
+                yTemp: { position: 'left', title: { display: true, text: 'Température (°C)' } },
+                yPrecip: { position: 'right', beginAtZero: true,
+                           grid: { drawOnChartArea: false },
+                           title: { display: true, text: 'Précipitations (mm/mois)' } }
+            }
+        }
+    });
+</script>
+{% endif %}
+{% endblock %}
