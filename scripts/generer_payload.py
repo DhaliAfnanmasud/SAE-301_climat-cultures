@@ -3,9 +3,9 @@
 À lancer depuis la racine du projet, venv activé, avec une connexion internet
 (le script appelle réellement Open-Meteo) :
 
-    python scripts/generer_payload.py
-    python scripts/generer_payload.py --commune 13 --culture 1 --horizon 2 --sortie docs/extrait.json
-    python scripts/generer_payload.py --jours 5 --sortie docs/extrait.json
+    python scripts/generer_payload.py --sortie docs/paylaod.py (ignoré car le fichier est trop lourd)
+    python scripts/generer_payload.py --commune 13 --culture 1 --horizon 2 --sortie docs/payload_toulouse.json
+    python scripts/generer_payload.py --jours 5 --sortie docs/payload_exemple.json
 
 Le fichier produit est à envoyer à DATA pour qu'ils vérifient que leur
 fonction de calcul l'accepte (tâche 8).
