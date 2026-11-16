@@ -12,6 +12,9 @@ def create_app(config_class=DevConfig):
 
     from app.blueprints.auth import auth_bp
     app.register_blueprint(auth_bp)
+    
+    from app.blueprints.analyse import analyse_bp
+    app.register_blueprint(analyse_bp)
 
     @app.errorhandler(404)
     def page_introuvable(erreur):
