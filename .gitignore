@@ -20,3 +20,6 @@ docs/JOURNAL-IA-*.md
 
 # Ignore le cache
 cache_dev.db
+
+# Ignore le payload complet
+docs/payload.json
