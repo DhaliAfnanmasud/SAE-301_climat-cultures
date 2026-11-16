@@ -14,6 +14,8 @@ CLES_CONTRAT = {
 # Clés pour les données quotidiennes
 CLES_JOUR = {"date", "t_min", "t_max", "t_moy", "precip"}
 
+# Réponse Open-Meteo simulée : 2 jours, avec une valeur manquante (None).
+# Les tests n'appellent jamais le vrai service : on remplace recuperer_climat par ce faux résultat grâce à patch().
 DAILY = {
     "time": ["2049-01-01", "2049-01-02"],
     "temperature_2m_min": [5.0, None],
@@ -21,13 +23,15 @@ DAILY = {
     "temperature_2m_mean": [8.5, 9.5],
     "precipitation_sum": [0.1, 0.0],
 } 
+# --------------------------------------------------------------------------
 
 def _payload():
+    """Construit un payload avec Open-Meteo simulé pour Toulouse (id_commune = 13)."""
     with patch("app.services.payload.recuperer_climat", return_value=DAILY):
         return construire_payload(13, 1, 2, 1, "sess_test")
-    
 
 def test_payload_respecte_le_contrat():
+    # Vérifie que les clés du payload sont exactement celles du contrat et que chaque jour de `series` a bien les 5 champs attendus.
     payload = _payload()
     
     assert set(payload) == CLES_CONTRAT
@@ -40,6 +44,7 @@ def test_payload_respecte_le_contrat():
     
 
 def test_deuxieme_modele_et_horizon_de_reference():
+    # Horizon 1 -> 2015 à 2025, modèle 2 -> CMCC_CM2_VHR4.
     with patch(
         "app.services.payload.recuperer_climat", return_value=DAILY
     ) as mock_climat:
@@ -50,10 +55,12 @@ def test_deuxieme_modele_et_horizon_de_reference():
     )
     
 def test_payload_garde_les_valeurs_manquantes():
+    # Une valeur absente chez Open-Meteo doit rester None, pas devenir 0.
     assert _payload()["series"][1]["t_min"] is None
 
 
 def test_payload_appelle_le_client_avec_les_bons_parametres():
+    # Horizon 2 -> 2040 à 2050, modèle 1 -> MRI_AGCM3_2_S, Toulouse (lat/lon).
     with patch(
         "app.services.payload.recuperer_climat", return_value=DAILY
     ) as mock_climat:
@@ -73,6 +80,8 @@ def test_payload_appelle_le_client_avec_les_bons_parametres():
     ],
 )
 def test_entree_invalide_refusee_sans_appel_api(args, message):
+    # Un id inconnu ou non numérique doit lever ValueError AVANT tout appel à l'API (assert_not_called). 
+    # Cela evite de gaspiller le quota.
     with patch("app.services.payload.recuperer_climat") as mock_climat:
         with pytest.raises(ValueError, match=message):
             construire_payload(*args, "sess_test")
@@ -81,6 +90,7 @@ def test_entree_invalide_refusee_sans_appel_api(args, message):
 
 
 def test_id_session_cree_puis_conserve():
+    # L'identifiant ne change pas pour le même visiteur, la même requête/cookie
     app = create_app()
 
     with app.test_request_context():
@@ -90,6 +100,7 @@ def test_id_session_cree_puis_conserve():
 
 
 def test_id_session_different_entre_deux_visiteurs():
+    # Deux contextes de requête séparés = deux visiteurs = deux identifiants.
     app = create_app()
 
     with app.test_request_context():
