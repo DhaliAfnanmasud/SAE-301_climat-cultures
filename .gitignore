@@ -22,4 +22,5 @@ docs/JOURNAL-IA-*.md
 cache_dev.db
 
 # Ignore le payload complet
+docs/payload_exemple.json
 docs/payload.json
