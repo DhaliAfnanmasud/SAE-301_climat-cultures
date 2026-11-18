@@ -1,5 +1,4 @@
 from flask import current_app, flash, redirect, render_template, request, url_for
-from flask import flash, redirect, render_template, request, url_for
 
 from app.blueprints.analyse import analyse_bp
 from app.services.apercu import agreger_par_mois
