@@ -25,7 +25,7 @@
                 <nav aria-label="Pages principales">
                     <ul class="list-unstyled footer-liens">
                         <li><a href="{{ url_for('main.home') }}">Accueil</a></li>
-                        <li><a href="#">Tableau de bord</a></li>
+                        <li><a href="{{ url_for('analyse.tableau_de_bord') }}">Tableau de bord</a></li>
                         <li><a href="{{ url_for('main.carte') }}">Carte</a></li>
                         <li><a href="{{ url_for('auth.connexion') }}">Se connecter</a></li>
                     </ul>
