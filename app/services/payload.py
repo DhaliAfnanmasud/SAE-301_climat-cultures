@@ -1,17 +1,6 @@
 from app.services.openmeteo_client import recuperer_climat, transformer_reponse, valider_commune
+from app.services.references import lire_commune, lire_culture, lire_horizon, lire_modele
 
-# --- Correspondances provisoires en attente de la fonction qui appel la BDD -------------------------------------------
-
-HORIZONS_PROVISOIRES = {
-    1: ("2015-01-01", "2025-12-31"),  # plage de réference
-    2: ("2040-01-01", "2050-12-31"),  #  prévisions pour 2040-2050
-}
-
-MODELES_PROVISOIRES = {
-    1: "MRI_AGCM3_2_S",
-    2: "CMCC_CM2_VHR4",
-}
-# ---------------------------------------------------------------------------
 
 def _en_entier(valeur, nom):
     """Convertit une valeur reçue en entier. 
@@ -49,29 +38,28 @@ def construire_payload (
     id_temps = _en_entier(id_temps, "id_temps")
     id_modele = _en_entier(id_modele, "id_modele")
     
-    # 2. Vérification d'un id_temps ou id_modèle existant
-    if id_temps not in HORIZONS_PROVISOIRES:
+    # 2. Vérification d'un id_commune, id_temps ou id_modèle existant
+    commune = lire_commune(id_commune)
+    if commune is None:
+        raise ValueError("Commune inconnue.")
+    horizon = lire_horizon(id_temps)
+    if horizon is None:
         raise ValueError("Horizon temporel inconnu.")
-    if id_modele not in MODELES_PROVISOIRES:
+    modele = lire_modele(id_modele)
+    if modele is None:
         raise ValueError("Modèle climatique inconnu.")
     
-    # 3. On appelle valider_commune qui lève ValueError si la commune n'existe pas.
-    commune = valider_commune(id_commune)
-    latitude = float(commune["latitude"])
-    longitude = float(commune["longitude"])
-    date_debut, date_fin = HORIZONS_PROVISOIRES[id_temps]
-    
-    # 4. Appel de l'API Open-Meteo (le cache évite de rappeler l'API pour une requête identique). 
+    # 3. Appel de l'API Open-Meteo (le cache évite de rappeler l'API pour une requête identique). 
     # Renvoie des listes parallèles : time[], temperature_2m_min[]...
     daily = recuperer_climat(
-        latitude,
-        longitude,
-        MODELES_PROVISOIRES[id_modele],
-        date_debut,
-        date_fin,
+        commune["latitude"],
+        commune["longitude"],
+        modele["code_api"],
+        horizon["date_debut"],
+        horizon["date_fin"],
     )
     
-    # 5. On renvoie les données au format du contrat d'interface pour produire le JSON
+    # 4. On renvoie les données au format du contrat d'interface pour produire le JSON
     # transformer_reponse convertit les listes parallèles en liste de jours {date, t_min, t_max, t_moy, precip}, avec None pour les valeurs manquantes (jamais 0).
     return {
         "id_commune": id_commune,
@@ -81,6 +69,6 @@ def construire_payload (
         "id_modele": id_modele,
         "id_session": id_session,
         "id_utilisateur": id_utilisateur,   # None tant qu'il n'y a pas de compte
-        "latitude": latitude,
+        "latitude": commune["latitude"],
         "series": transformer_reponse(daily),
     }
