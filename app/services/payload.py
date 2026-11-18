@@ -1,5 +1,5 @@
-from app.services.openmeteo_client import recuperer_climat, transformer_reponse, valider_commune
-from app.services.references import lire_commune, lire_culture, lire_horizon, lire_modele
+from app.services.openmeteo_client import recuperer_climat, transformer_reponse
+from app.services.references import lire_commune, lire_horizon, lire_modele
 
 
 def _en_entier(valeur, nom):
