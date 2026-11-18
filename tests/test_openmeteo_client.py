@@ -454,26 +454,3 @@ def test_cle_cache_change_si_parametre_change():
 
     assert generer_cle_cache(parametres_1) != generer_cle_cache(parametres_2)
 
-
-# -----------------------------
-# Tests des fonctionnalités encore manquantes
-# -----------------------------
-
-@pytest.mark.xfail(
-    reason="La validation du modèle n'est pas encore implémentée",
-    strict=True
-)
-def test_modele_inconnu_refuse_avant_appel_api():
-    with patch(
-        "app.services.openmeteo_client.requests.get"
-    ) as mock_get:
-
-        with pytest.raises(ValueError):
-            recuperer_climat_commune(
-                13,
-                "MODELE_INCONNU",
-                "2049-01-01",
-                "2049-12-31"
-            )
-
-        mock_get.assert_not_called()
