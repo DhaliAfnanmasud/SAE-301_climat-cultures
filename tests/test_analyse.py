@@ -1,9 +1,11 @@
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from app import create_app
 from app.services.apercu import agreger_par_mois
 
-# On simule un payload pour Toulouse (commune 13) sans appel réel à Open-Meteo.
+ROUTES = "app.blueprints.analyse.routes"
+
+# Payload simulé pour la ville de Toulouse (commune 13), sans appel réel à Open-Meteo.
 PAYLOAD = {
     "id_commune": 13, "code_insee": "31555", "id_culture": 1, "id_temps": 2,
     "id_modele": 1, "id_session": "sess_test", "id_utilisateur": None,
@@ -15,28 +17,44 @@ PAYLOAD = {
 }
 
 URL = "/analyse/resultat?commune=13&culture=1&horizon=2"
-CIBLE = "app.blueprints.analyse.routes.construire_payload"
+
+# Fausses lectures de la base (aucune connexion réelle n'est nécessaire).
+COMMUNE = {"id_commune": 13, "nom": "Toulouse"}
+CULTURE = {"id_culture": 1, "nom": "Maïs grain"}
+HORIZON = {"id_temps": 2, "libelle": "2050 (2040–2050)"}
+
+
+def _fausse_base(culture=CULTURE):
+    """Remplace les lectures en base de la route ; culture=None simule
+    une culture inconnue."""
+    return patch.multiple(
+        ROUTES,
+        lire_commune=MagicMock(return_value=COMMUNE),
+        lire_culture=MagicMock(return_value=culture),
+        lire_horizon=MagicMock(return_value=HORIZON),
+    )
 
 
 def _client():
     return create_app().test_client()
 
 
-# --- Route /analyse/resultat -------------------------------------------------
+# Route /analyse/resultat -------------------------------------------------
 
 def test_resultat_affiche_le_choix_le_graphique_et_le_placeholder():
-    with patch(CIBLE, return_value=PAYLOAD):
+    with _fausse_base(), patch(f"{ROUTES}.construire_payload", return_value=PAYLOAD):
         reponse = _client().get(URL)
 
     page = reponse.get_data(as_text=True)
     assert reponse.status_code == 200
     assert "Toulouse" in page and "Maïs grain" in page
+    assert "2050 (2040–2050)" in page
     assert "graphique-climat" in page
     assert "Indicateur : bientôt disponible" in page
 
 
 def test_parametre_manquant_redirige_avec_message():
-    with patch(CIBLE) as mock_payload:
+    with patch(f"{ROUTES}.construire_payload") as mock_payload:
         reponse = _client().get("/analyse/resultat?commune=13", follow_redirects=True)
 
     assert reponse.status_code == 200
@@ -45,7 +63,7 @@ def test_parametre_manquant_redirige_avec_message():
 
 
 def test_culture_inconnue_refusee_sans_appel_api():
-    with patch(CIBLE) as mock_payload:
+    with _fausse_base(culture=None), patch(f"{ROUTES}.construire_payload") as mock_payload:
         reponse = _client().get(
             "/analyse/resultat?commune=13&culture=99&horizon=2", follow_redirects=True
         )
@@ -55,7 +73,9 @@ def test_culture_inconnue_refusee_sans_appel_api():
 
 
 def test_id_invalide_affiche_un_message_et_pas_une_erreur():
-    with patch(CIBLE, side_effect=ValueError("Commune inconnue.")):
+    with _fausse_base(), patch(
+        f"{ROUTES}.construire_payload", side_effect=ValueError("Commune inconnue.")
+    ):
         reponse = _client().get(URL, follow_redirects=True)
 
     assert reponse.status_code == 200
@@ -63,7 +83,10 @@ def test_id_invalide_affiche_un_message_et_pas_une_erreur():
 
 
 def test_api_indisponible_affiche_un_message_clair():
-    with patch(CIBLE, side_effect=RuntimeError("Le service Open-Meteo est indisponible.")):
+    with _fausse_base(), patch(
+        f"{ROUTES}.construire_payload",
+        side_effect=RuntimeError("Le service Open-Meteo est indisponible."),
+    ):
         reponse = _client().get(URL)
 
     assert reponse.status_code == 503
@@ -73,14 +96,24 @@ def test_api_indisponible_affiche_un_message_clair():
 
 
 def test_erreur_inattendue_ne_donne_jamais_une_page_500():
-    with patch(CIBLE, side_effect=KeyError("bug")):
+    with _fausse_base(), patch(f"{ROUTES}.construire_payload", side_effect=KeyError("bug")):
         reponse = _client().get(URL)
 
     assert reponse.status_code == 503
     assert "erreur inattendue" in reponse.get_data(as_text=True)
 
 
-# --- Agrégation mensuelle ----------------------------------------------------
+def test_base_injoignable_ne_donne_pas_une_page_500():
+    # Si la lecture en base échoue (serveur éteint, .env absent...), la page
+    # affiche un message clair au lieu d'une erreur 500.
+    with patch(f"{ROUTES}.lire_culture", side_effect=Exception("base injoignable")):
+        reponse = _client().get(URL)
+
+    assert reponse.status_code == 503
+    assert "erreur inattendue" in reponse.get_data(as_text=True)
+
+
+# Agrégation mensuelle ----------------------------------------------------
 
 def test_agregation_moyenne_les_temperatures_et_cumule_la_pluie():
     resultat = agreger_par_mois(PAYLOAD["series"])
