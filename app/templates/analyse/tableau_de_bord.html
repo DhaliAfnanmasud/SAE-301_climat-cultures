@@ -1,0 +1,55 @@
+{% extends "base.html" %} {% block title %}Tableau de bord | Climat &amp;
+Cultures{% endblock %} {% block content %}
+<div class="container py-5">
+  <h1 class="mb-3">Analyser une commune</h1>
+
+  <p class="text-muted mb-4">
+    Choisissez une commune, une culture et un horizon temporel.
+  </p>
+
+  <form method="POST">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+    <div class="mb-3">
+      <label for="commune" class="form-label">Commune</label>
+      <select class="form-select" id="commune" name="commune" required>
+        <option value="" selected disabled>Choisir une commune</option>
+
+        {% for commune in communes %}
+        <option value="{{ commune.id_commune }}">
+          {{ commune.nom_commune }}
+        </option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="mb-3">
+      <label for="culture" class="form-label">Culture</label>
+      <select class="form-select" id="culture" name="culture" required>
+        <option value="" selected disabled>Choisir une culture</option>
+
+        {% for culture in cultures %}
+        <option value="{{ culture.id_culture }}">
+          {{ culture.nom_culture }}
+        </option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="mb-4">
+      <label for="horizon" class="form-label"> Horizon temporel </label>
+
+      <select class="form-select" id="horizon" name="horizon" required>
+        <option value="" selected disabled>Choisir un horizon</option>
+
+        {% for temps in horizons %}
+        <option value="{{ temps.id_temps }}">
+          {{ temps.horizon }} ({{ temps.annee_debut }}–{{ temps.annee_fin }})
+        </option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <button type="submit" class="btn btn-climat">Analyser</button>
+  </form>
+</div>
+{% endblock %}

@@ -1,10 +1,14 @@
 from flask import Flask, render_template
 from app.config import DevConfig
+from app.extensions import db, csrf
 
 def create_app(config_class=DevConfig):
     app = Flask(__name__)
     app.json.ensure_ascii = False
     app.config.from_object(config_class)
+
+    db.init_app(app)
+    csrf.init_app(app)
 
     # Enregistrements des blueprints
     from app.blueprints.main import main_bp
