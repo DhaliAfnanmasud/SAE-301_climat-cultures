@@ -4,7 +4,6 @@
 
 {% block content %}
 <div class="container py-5">
-
     <h1>Résultat de l'analyse</h1>
 
     {% if erreur %}
@@ -13,7 +12,6 @@
         <i class="bi bi-exclamation-triangle" aria-hidden="true"></i>
         {{ erreur }}
     </div>
-
     <a href="{{ request.full_path }}" class="btn btn-climat">
         <i class="bi bi-arrow-clockwise" aria-hidden="true"></i> Réessayer
     </a>
@@ -36,29 +34,85 @@
             <canvas id="graphique-climat" role="img"
                     aria-label="Températures minimale, moyenne et maximale mensuelles et cumul de précipitations pour {{ nom_commune }}, {{ libelle_horizon }}"></canvas>
         </div>
-
         <figcaption class="text-muted mt-2">
             Moyennes mensuelles calculées à partir de {{ nb_jours }} jours de données climatiques simulées.
         </figcaption>
     </figure>
 
-    {# Emplacement réservé pour l'indicateur de DATA (J3.3) #}
-    <div class="alert alert-info mt-4" role="status">
-        <i class="bi bi-hourglass-split" aria-hidden="true"></i>
-        Indicateur : bientôt disponible.
+    {# Indicateurs calculés par le module de DATA #}
+    <h2 class="h4 mt-5">Indicateurs agroclimatiques</h2>
+    <p class="text-muted">
+        Valeurs moyennes par an sur l'horizon choisi
+        ({{ indicateurs.nb_annees }} année{{ 's' if indicateurs.nb_annees > 1 }} prise{{ 's' if indicateurs.nb_annees > 1 }} en compte).
+    </p>
+
+    {% if indicateurs.serie_incomplete %}
+    <div class="alert alert-warning" role="alert">
+        <i class="bi bi-exclamation-triangle" aria-hidden="true"></i>
+        Série incomplète : aucune année complète n'est disponible, les indicateurs sont calculés sur les jours reçus.
+    </div>
+    {% elif indicateurs.nb_annees_incompletes %}
+    <div class="alert alert-warning" role="alert">
+        <i class="bi bi-exclamation-triangle" aria-hidden="true"></i>
+        {{ indicateurs.nb_annees_incompletes }} année{{ 's' if indicateurs.nb_annees_incompletes > 1 }} incomplète{{ 's' if indicateurs.nb_annees_incompletes > 1 }} exclue{{ 's' if indicateurs.nb_annees_incompletes > 1 }} du calcul.
+    </div>
+    {% endif %}
+
+    <div class="row g-3">
+        <div class="col-6 col-lg-3">
+            <div class="card h-100"><div class="card-body">
+                <div class="text-muted">Jours de gel</div>
+                <div class="fs-3 fw-bold">{{ ('%.1f' % indicateurs.jours_gel)|replace('.', ',') }}</div>
+                <div class="text-muted small">jours par an</div>
+            </div></div>
+        </div>
+        <div class="col-6 col-lg-3">
+            <div class="card h-100"><div class="card-body">
+                <div class="text-muted">Degrés-jours (GDD)</div>
+                <div class="fs-3 fw-bold">{{ ('%.1f' % indicateurs.gdd)|replace('.', ',') }}</div>
+                <div class="text-muted small">°C·jour par an</div>
+            </div></div>
+        </div>
+        <div class="col-6 col-lg-3">
+            <div class="card h-100"><div class="card-body">
+                <div class="text-muted">Jours de stress thermique</div>
+                <div class="fs-3 fw-bold">{{ ('%.1f' % indicateurs.jours_stress_thermique)|replace('.', ',') }}</div>
+                <div class="text-muted small">jours par an</div>
+            </div></div>
+        </div>
+        <div class="col-6 col-lg-3">
+            <div class="card h-100"><div class="card-body">
+                <div class="text-muted">Bilan hydrique</div>
+                {% if indicateurs.bilan_hydrique_mm is none %}
+                <div class="fs-5 fw-bold">Non disponible</div>
+                {% else %}
+                <div class="fs-3 fw-bold">{{ ('%.1f' % indicateurs.bilan_hydrique_mm)|replace('.', ',') }}</div>
+                <div class="text-muted small">mm par an</div>
+                {% endif %}
+            </div></div>
+        </div>
+    </div>
+
+    {% if indicateurs.nb_jours_ignores %}
+    <p class="text-muted small mt-2">
+        {{ indicateurs.nb_jours_ignores }} jour{{ 's' if indicateurs.nb_jours_ignores > 1 }} sans température exploitable ignoré{{ 's' if indicateurs.nb_jours_ignores > 1 }}.
+    </p>
+    {% endif %}
+
+    <div class="alert alert-{{ classe_verdict }} mt-4" role="status">
+        <strong>Verdict : {{ libelle_verdict }}</strong>
+        <div class="small">Règle de verdict provisoire, en cours de validation par l'équipe.</div>
     </div>
 
     <a href="{{ url_for('main.home') }}" class="btn btn-outline-secondary">
         <i class="bi bi-arrow-left" aria-hidden="true"></i> Retour à l'accueil
     </a>
     {% endif %}
-
 </div>
 {% endblock %}
 
 {% block scripts %}
 {% if not erreur %}
-
 {# Données du graphique, injectées en JSON sûr (échappé par Jinja) #}
 <script id="donnees-climat" type="application/json">{{ donnees|tojson }}</script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
