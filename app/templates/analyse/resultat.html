@@ -28,17 +28,6 @@
         <dd class="col-sm-9">{{ libelle_horizon }}</dd>
     </dl>
 
-    {# Aperçu des séries climatiques (Chart.js) #}
-    <figure class="mt-4">
-        <div style="position: relative; height: 420px;">
-            <canvas id="graphique-climat" role="img"
-                    aria-label="Températures minimale, moyenne et maximale mensuelles et cumul de précipitations pour {{ nom_commune }}, {{ libelle_horizon }}"></canvas>
-        </div>
-        <figcaption class="text-muted mt-2">
-            Moyennes mensuelles calculées à partir de {{ nb_jours }} jours de données climatiques simulées.
-        </figcaption>
-    </figure>
-
     {# Indicateurs calculés par le module de DATA #}
     <h2 class="h4 mt-5">Indicateurs agroclimatiques</h2>
     <p class="text-muted">
@@ -103,6 +92,25 @@
         <strong>Verdict : {{ libelle_verdict }}</strong>
         <div class="small">Règle de verdict provisoire, en cours de validation par l'équipe.</div>
     </div>
+
+    {# Nuance exigée par l'énoncé + source des données #}
+    <p class="text-muted small mt-3">
+        Projection issue d'un modèle climatique (scénario d'émissions élevé), à interpréter comme une tendance.
+        Calcul sur l'année entière.<br>
+        Source des données : <a href="https://open-meteo.com/" target="_blank" rel="noopener noreferrer">Open-Meteo</a> (licence CC BY 4.0).
+    </p>
+
+    <h2 class="h4 mt-5">Évolution du climat</h2>
+    {# Aperçu des séries climatiques (Chart.js) #}
+    <figure class="mt-4">
+        <div style="position: relative; height: 420px;">
+            <canvas id="graphique-climat" role="img"
+                    aria-label="Températures minimale, moyenne et maximale mensuelles et cumul de précipitations pour {{ nom_commune }}, {{ libelle_horizon }}"></canvas>
+        </div>
+        <figcaption class="text-muted mt-2">
+            Moyennes mensuelles calculées à partir de {{ nb_jours }} jours de données climatiques simulées.
+        </figcaption>
+    </figure>
 
     <a href="{{ url_for('main.home') }}" class="btn btn-outline-secondary">
         <i class="bi bi-arrow-left" aria-hidden="true"></i> Retour à l'accueil
