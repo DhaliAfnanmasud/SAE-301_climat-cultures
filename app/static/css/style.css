@@ -1,0 +1,82 @@
+:root {
+    --cc-fond: #080f0a;
+    --cc-vert-fonce: #113d31;
+    --cc-vert-carte: #0c281c;
+    --cc-vert-bouton: #54725b;
+    --cc-vert-vif: #4baf50;
+    --cc-clair: #e8efe6;
+    --cc-clair-2: #f2f6f0;
+}
+
+.navbar.navbar-climat {
+    background-color: var(--cc-fond);
+    --bs-navbar-color: #ffffff;
+    --bs-navbar-hover-color: var(--cc-vert-vif);
+    --bs-navbar-active-color: #ffffff;
+}
+
+.navbar-climat .nav-link {
+    font-weight: 600;
+}
+
+.navbar-climat .nav-link.active {
+    text-decoration: underline;
+    text-decoration-thickness: 2px;
+    text-underline-offset: 0.5rem;
+}
+
+.footer-climat {
+    background-color: var(--cc-vert-carte);
+    background-image:
+        linear-gradient(rgba(8, 15, 10, 0.6), rgba(8, 15, 10, 0.6)),
+        url('../img/image_fond.jpg');
+    background-size: cover;
+    background-position: center;
+    color: #ffffff;
+}
+
+.footer-climat a {
+    color: #ffffff;
+    text-decoration: none;
+}
+
+.footer-climat a:hover,
+.footer-climat a:focus-visible {
+    color: var(--cc-vert-vif);
+}
+
+.footer-texte {
+    color: rgba(255, 255, 255, 0.8);
+}
+
+.footer-liens li {
+    margin-bottom: 0.75rem;
+}
+
+.footer-liens a {
+    font-weight: 600;
+    font-size: 1.1rem;
+}
+
+.footer-icone {
+    font-size: 1.75rem;
+}
+
+.btn-climat {
+    --bs-btn-color: #ffffff;
+    --bs-btn-bg: var(--cc-vert-bouton);
+    --bs-btn-border-color: var(--cc-vert-bouton);
+    --bs-btn-hover-color: #ffffff;
+    --bs-btn-hover-bg: var(--cc-vert-fonce);
+    --bs-btn-hover-border-color: var(--cc-vert-fonce);
+    --bs-btn-active-color: #ffffff;
+    --bs-btn-active-bg: var(--cc-vert-fonce);
+    --bs-btn-active-border-color: var(--cc-vert-fonce);
+    --bs-btn-focus-shadow-rgb: 84, 114, 91;
+}
+
+.accueil-texte {
+    max-width: 40rem;
+    margin-left: auto;
+    margin-right: auto;
+}

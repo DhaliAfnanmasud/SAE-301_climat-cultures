@@ -1,0 +1,18 @@
+{% extends 'base.html' %}
+
+{% block title %}FAQ | Climat &amp; Cultures{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <h1>Foire aux questions</h1>
+
+    <div class="alert alert-info mt-4" role="status">
+        <i class="bi bi-cone-striped" aria-hidden="true"></i>
+        Cette page est en cours de construction.
+    </div>
+
+    <a href="{{ url_for('main.home') }}" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left" aria-hidden="true"></i> Retour à l'accueil
+    </a>
+</div>
+{% endblock %}

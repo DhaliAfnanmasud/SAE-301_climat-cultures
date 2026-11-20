@@ -1,0 +1,17 @@
+﻿id_commune,nom,code_insee,latitude,longitude,altitude_m,zone_climatique,remarque_agricole
+1,Lille,59350,50.63,3.06,25,océanique dégradé,Flandre - betterave et blé
+2,Brest,29019,48.39,-4.49,50,océanique,Littoral ouest - polyculture élevage
+3,Rennes,35238,48.11,-1.68,30,océanique,Bretagne - polyculture élevage
+4,Reims,51454,49.26,4.03,85,océanique dégradé,Champagne - vigne
+5,Paris,75056,48.85,2.35,35,océanique dégradé,Bassin parisien - îlot de chaleur urbain
+6,Orléans,45234,47.90,1.90,100,océanique dégradé,Beauce - grandes cultures céréalières
+7,Strasbourg,67482,48.58,7.75,140,semi-continental,Plaine d'Alsace - maïs
+8,Nancy,54395,48.69,6.18,210,semi-continental,Lorraine - polyculture
+9,Dijon,21231,47.32,5.04,245,semi-continental,Bourgogne - vigne
+10,Clermont-Ferrand,63113,45.78,3.08,330,semi-continental,Limagne - céréales
+11,Lyon,69123,45.76,4.84,170,semi-continental,Vallée du Rhône
+12,Bordeaux,33063,44.84,-0.58,10,océanique aquitain,Sud-Ouest - vigne et maïs
+13,Toulouse,31555,43.60,1.44,150,océanique aquitain,Sud-Ouest - céréales tournesol maïs
+14,Avignon,84007,43.95,4.81,25,méditerranéen,Vallée du Rhône - vergers vigne maraîchage
+15,Montpellier,34172,43.61,3.88,30,méditerranéen,Languedoc - vigne
+16,Briançon,05023,44.90,6.64,1326,montagnard,Alpes - alpages - ville la plus haute de France
