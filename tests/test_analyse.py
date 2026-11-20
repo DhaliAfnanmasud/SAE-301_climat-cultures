@@ -5,7 +5,7 @@ from app.services.apercu import agreger_par_mois
 
 ROUTES = "app.blueprints.analyse.routes"
 
-# Payload simulé (commune 13 = Toulouse), sans appel réel à Open-Meteo.
+# Payload simulé pour Toulouse (commune 13), sans appel réel à Open-Meteo.
 PAYLOAD = {
     "id_commune": 13, "code_insee": "31555", "id_culture": 1, "id_temps": 2,
     "id_modele": 1, "id_session": "sess_test", "id_utilisateur": None,
@@ -16,6 +16,17 @@ PAYLOAD = {
     ],
 }
 URL = "/analyse/resultat?commune=13&culture=1&horizon=2"
+
+# Résultat simulé de calculer_indicateurs via le module de calcul de DATA).
+INDICATEURS = {
+    "id_commune": 13, "id_culture": 1, "id_temps": 2, "id_modele": 1,
+    "id_session": "sess_test", "id_utilisateur": None,
+    "jours_gel": 2.5, "gdd": 3300.0, "jours_stress_thermique": 10.0,
+    "bilan_hydrique_mm": -150.3, "id_verdict": 1, "verdict": "viable",
+    "nb_annees": 11, "nb_annees_incompletes": 0,
+    "serie_incomplete": False, "nb_jours_ignores": 0,
+}
+CALCUL = f"{ROUTES}.calculer_indicateurs"
 
 # Fausses lectures de la base (aucune connexion réelle n'est nécessaire).
 COMMUNE = {"id_commune": 13, "nom": "Toulouse"}
@@ -50,8 +61,10 @@ def _messages_flash(client):
 
 # --- Route /analyse/resultat -------------------------------------------------
 
-def test_resultat_affiche_le_choix_le_graphique_et_le_placeholder():
-    with _fausse_base(), patch(f"{ROUTES}.construire_payload", return_value=PAYLOAD):
+def test_resultat_affiche_le_choix_le_graphique_et_les_indicateurs():
+    with _fausse_base(), patch(
+        f"{ROUTES}.construire_payload", return_value=PAYLOAD
+    ), patch(CALCUL, return_value=INDICATEURS):
         reponse = _client().get(URL)
 
     page = reponse.get_data(as_text=True)
@@ -59,7 +72,120 @@ def test_resultat_affiche_le_choix_le_graphique_et_le_placeholder():
     assert "Toulouse" in page and "Maïs grain" in page
     assert "2050 (2040–2050)" in page
     assert "graphique-climat" in page
-    assert "Indicateur : bientôt disponible" in page
+    # Indicateurs avec virgule décimale française, et verdict
+    assert "2,5" in page and "3300,0" in page and "-150,3" in page
+    assert "Verdict : Viable" in page and "alert-success" in page
+    assert "bientôt disponible" not in page
+
+
+def test_bilan_hydrique_absent_affiche_non_disponible():
+    sans_bilan = {**INDICATEURS, "bilan_hydrique_mm": None}
+    with _fausse_base(), patch(
+        f"{ROUTES}.construire_payload", return_value=PAYLOAD
+    ), patch(CALCUL, return_value=sans_bilan):
+        page = _client().get(URL).get_data(as_text=True)
+
+    assert "Non disponible" in page
+
+
+def test_verdicts_menacee_et_non_viable_ont_leur_couleur():
+    for id_verdict, libelle, classe in ((2, "Menacée", "alert-warning"),
+                                        (3, "Non viable", "alert-danger")):
+        resultat = {**INDICATEURS, "id_verdict": id_verdict}
+        with _fausse_base(), patch(
+            f"{ROUTES}.construire_payload", return_value=PAYLOAD
+        ), patch(CALCUL, return_value=resultat):
+            page = _client().get(URL).get_data(as_text=True)
+
+        assert f"Verdict : {libelle}" in page and classe in page
+
+
+def test_serie_incomplete_affiche_un_avertissement():
+    incomplet = {**INDICATEURS, "serie_incomplete": True, "nb_annees": 1}
+    with _fausse_base(), patch(
+        f"{ROUTES}.construire_payload", return_value=PAYLOAD
+    ), patch(CALCUL, return_value=incomplet):
+        page = _client().get(URL).get_data(as_text=True)
+
+    assert "Série incomplète" in page
+
+
+def test_chaine_complete_avec_le_vrai_module_de_calcul():
+    # Aucun faux calcul ici : le payload (2 jours) passe dans le vrai
+    # calculer_indicateurs de DATA. Deux jours ne font pas une année complète.
+    with _fausse_base(), patch(f"{ROUTES}.construire_payload", return_value=PAYLOAD):
+        reponse = _client().get(URL)
+
+    page = reponse.get_data(as_text=True)
+    assert reponse.status_code == 200
+    assert "Série incomplète" in page
+    assert "Verdict : Non viable" in page
+
+
+def test_calcul_refuse_affiche_une_page_derreur_claire():
+    with _fausse_base(), patch(
+        f"{ROUTES}.construire_payload", return_value=PAYLOAD
+    ), patch(CALCUL, side_effect=ValueError("aucun jour exploitable")):
+        reponse = _client().get(URL)
+
+    assert reponse.status_code == 503
+    assert "insuffisantes" in reponse.get_data(as_text=True)
+
+
+def test_erreur_inattendue_du_calcul_ne_donne_pas_une_page_500():
+    with _fausse_base(), patch(
+        f"{ROUTES}.construire_payload", return_value=PAYLOAD
+    ), patch(CALCUL, side_effect=KeyError("bug")):
+        reponse = _client().get(URL)
+
+    assert reponse.status_code == 503
+    assert "erreur inattendue" in reponse.get_data(as_text=True)
+
+
+# --- Écriture dans Fact_Indicateur (ENREGISTRER_FACT) -------------------------
+
+def test_aucune_ecriture_en_base_par_defaut(monkeypatch):
+    monkeypatch.delenv("ENREGISTRER_FACT", raising=False)
+    with _fausse_base(), patch(
+        f"{ROUTES}.construire_payload", return_value=PAYLOAD
+    ), patch(CALCUL, return_value=INDICATEURS), patch(
+        f"{ROUTES}.ecrire_fact"
+    ) as mock_ecrire:
+        reponse = _client().get(URL)
+
+    assert reponse.status_code == 200
+    mock_ecrire.assert_not_called()
+
+
+def test_ecriture_activee_par_ENREGISTRER_FACT(monkeypatch):
+    monkeypatch.setenv("ENREGISTRER_FACT", "1")
+    connexion = MagicMock()
+    with _fausse_base(), patch(
+        f"{ROUTES}.construire_payload", return_value=PAYLOAD
+    ), patch(CALCUL, return_value=INDICATEURS), patch(
+        f"{ROUTES}.ecrire_fact"
+    ) as mock_ecrire, patch(
+        f"{ROUTES}.db"
+    ) as mock_db:
+        mock_db.engine.raw_connection.return_value = connexion
+        reponse = _client().get(URL)
+
+    assert reponse.status_code == 200
+    mock_ecrire.assert_called_once_with(connexion, INDICATEURS)
+    connexion.close.assert_called_once()
+
+
+def test_echec_decriture_nempeche_pas_laffichage(monkeypatch):
+    monkeypatch.setenv("ENREGISTRER_FACT", "1")
+    with _fausse_base(), patch(
+        f"{ROUTES}.construire_payload", return_value=PAYLOAD
+    ), patch(CALCUL, return_value=INDICATEURS), patch(
+        f"{ROUTES}.ecrire_fact", side_effect=Exception("base injoignable")
+    ), patch(f"{ROUTES}.db"):
+        reponse = _client().get(URL)
+
+    assert reponse.status_code == 200
+    assert "Verdict : Viable" in reponse.get_data(as_text=True)
 
 
 def test_parametre_manquant_renvoie_vers_le_formulaire_avec_message():
