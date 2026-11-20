@@ -5,7 +5,7 @@ from app.services.apercu import agreger_par_mois
 
 ROUTES = "app.blueprints.analyse.routes"
 
-# Payload simulé pour Toulouse (commune 13), sans appel réel à Open-Meteo.
+# Payload simulé (commune 13 = Toulouse), sans appel réel à Open-Meteo.
 PAYLOAD = {
     "id_commune": 13, "code_insee": "31555", "id_culture": 1, "id_temps": 2,
     "id_modele": 1, "id_session": "sess_test", "id_utilisateur": None,
@@ -17,7 +17,7 @@ PAYLOAD = {
 }
 URL = "/analyse/resultat?commune=13&culture=1&horizon=2"
 
-# Résultat simulé de calculer_indicateurs via le module de calcul de DATA).
+# Résultat simulé de calculer_indicateurs (module de DATA).
 INDICATEURS = {
     "id_commune": 13, "id_culture": 1, "id_temps": 2, "id_modele": 1,
     "id_session": "sess_test", "id_utilisateur": None,
@@ -274,3 +274,57 @@ def test_agregation_ignore_les_valeurs_manquantes_sans_inventer_de_zero():
     assert resultat["labels"] == ["2049-01", "2049-02"]
     assert resultat["t_min"] == [None, 1.0]
     assert resultat["precip"] == [None, 0.0]
+
+
+# --- Appel du calcul, mentions obligatoires, aucune écriture en cas d'erreur ----
+
+def test_la_route_appelle_le_calcul_avec_le_payload():
+    with _fausse_base(), patch(
+        f"{ROUTES}.construire_payload", return_value=PAYLOAD
+    ), patch(CALCUL, return_value=INDICATEURS) as mock_calcul:
+        _client().get(URL)
+
+    mock_calcul.assert_called_once_with(PAYLOAD)
+
+
+def test_indicateurs_avant_le_graphique_avec_nuance_et_source():
+    with _fausse_base(), patch(
+        f"{ROUTES}.construire_payload", return_value=PAYLOAD
+    ), patch(CALCUL, return_value=INDICATEURS):
+        page = _client().get(URL).get_data(as_text=True)
+
+    assert page.index("Indicateurs agroclimatiques") < page.index("graphique-climat")
+    assert "à interpréter comme une tendance" in page
+    assert "Calcul sur l'année entière" in page
+    assert "CC BY 4.0" in page
+
+
+def test_rien_nest_ecrit_en_base_en_cas_derreur(monkeypatch):
+    # Même avec l'écriture activée, aucune erreur (API, id invalide, calcul)
+    # ne doit laisser une ligne dans Fact_Indicateur.
+    monkeypatch.setenv("ENREGISTRER_FACT", "1")
+    scenarios = [
+        {"payload": RuntimeError("API indisponible"), "calcul": INDICATEURS},
+        {"payload": ValueError("Commune inconnue."), "calcul": INDICATEURS},
+        {"payload": PAYLOAD, "calcul": ValueError("aucun jour exploitable")},
+        {"payload": PAYLOAD, "calcul": KeyError("bug")},
+    ]
+    for scenario in scenarios:
+        kwargs_payload = (
+            {"side_effect": scenario["payload"]}
+            if isinstance(scenario["payload"], Exception)
+            else {"return_value": scenario["payload"]}
+        )
+        kwargs_calcul = (
+            {"side_effect": scenario["calcul"]}
+            if isinstance(scenario["calcul"], Exception)
+            else {"return_value": scenario["calcul"]}
+        )
+        with _fausse_base(), patch(
+            f"{ROUTES}.construire_payload", **kwargs_payload
+        ), patch(CALCUL, **kwargs_calcul), patch(
+            f"{ROUTES}.ecrire_fact"
+        ) as mock_ecrire, patch(f"{ROUTES}.db"):
+            _client().get(URL)
+
+        mock_ecrire.assert_not_called()
