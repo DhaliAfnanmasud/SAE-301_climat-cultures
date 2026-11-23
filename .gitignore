@@ -23,4 +23,4 @@ cache_dev.db
 
 # Ignore le payload complet
 docs/payload_exemple.json
-docs/payload.json
+docs/payload.jsoncache_dev.db
