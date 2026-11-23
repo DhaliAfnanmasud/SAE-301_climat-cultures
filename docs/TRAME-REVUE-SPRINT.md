@@ -1,7 +1,9 @@
-# 🔁 Revue de sprint — Équipe 1 — Sprint n° 1
+# Revue de sprint — Équipe 1 — Sprint n° 1
 
 - **Période :** du 09/11/2026 au 29/11/2026
 - **Présents :** BOUSSAIDI Malik, DHALI Afnanmasud, EL AIDOUS Amine, ELGHOMARI--JABEUR Alaeddine, LIN Romaric
+- **Version déployée :** https://sae301climat.alwaysdata.net/
+- **Contrat d'interface DEV ↔ DATA :** v1.3, daté du 23/11/2026
 
 ## 1. Objectifs prévus pour ce sprint
 
@@ -11,7 +13,7 @@
 
 ## 2. Réalisé
 
-### 💻 Pôle DEV
+### Pôle DEV
 
 - Mise en place et amélioration de l'application Flask avec les différentes pages et la navigation.
 - Création du tableau de bord permettant de choisir une commune, une culture et un horizon temporel.
@@ -30,15 +32,15 @@
   - bilan hydrique.
 - Affichage du verdict de viabilité de la culture.
 - Affichage d'un graphique climatique avec Chart.js.
-- Ajout d'un avertissement précisant qu'il s'agit d'une projection provenant d'un modèle climatique et qu'elle doit être interprétée comme une tendance.
+- Ajout d'un avertissement précisant qu'il s'agit d'une projection provenant d'un modèle climatique, issue d'un seul scénario d'émissions proche du plus pessimiste, et qu'elle doit être interprétée comme une tendance.
 - Ajout de la source Open-Meteo et de la licence CC BY 4.0.
 - Ajout de tests `pytest` pour le formulaire, les routes, le client API, le cache, les calculs et l'intégration générale.
 - Préparation de la configuration de production avec `ProdConfig`, `FLASK_ENV`, `SECRET_KEY` et `DATABASE_URL`.
 - Déploiement de l'application sur AlwaysData en Python WSGI.
 - Configuration des variables d'environnement nécessaires sur le serveur.
-- Validation du parcours complet sur la version en ligne.
+- Validation du parcours complet sur la version en ligne (https://sae301climat.alwaysdata.net/).
 
-### 📊 Pôle DATA
+### Pôle DATA
 
 - Requêtes RGPD corrigées et testées sur la base.
 - Jalon 3.2 : calcul des jours de gel pour Toulouse, maïs, 2010 : **20 jours**, écrits dans `Fact_Indicateur` avec la session `S47_gel`.
@@ -48,7 +50,7 @@
   - les jours de stress thermique ;
   - le bilan hydrique ;
   - le verdict.
-- Test du module sur le `payload.json` fourni par le DEV pour Toulouse, maïs, 2050 et le modèle MRI :
+- Test du module sur le `payload.json` fourni par le DEV pour Toulouse, maïs, 2050 et le modèle MRI (valeurs moyennes annuelles sur les années complètes de la série ; une année à moins de 90 % des jours est exclue) :
   - gel : **6,7** ;
   - GDD : **3514,6** ;
   - stress thermique : **14,7** ;
@@ -58,7 +60,7 @@
 - Réponses aux questions du pôle DEV concernant l'intégration.
 - Relecture et validation du contrat d'interface DEV ↔ DATA v1.3.
 
-### 👥 Intégration commune
+### Intégration commune
 
 L'intégration de bout en bout est fonctionnelle.
 
@@ -71,7 +73,7 @@ Le parcours réalisé est le suivant :
 5. Les données climatiques sont transformées dans le format défini par le contrat d'interface.
 6. Le payload est envoyé au module de calcul du pôle DATA.
 7. Les indicateurs sont calculés à partir des séries climatiques et des seuils de la culture.
-8. Les résultats peuvent être enregistrés dans `Fact_Indicateur`.
+8. Les résultats sont enregistrés dans `Fact_Indicateur` par « upsert » lorsque la variable d'environnement `ENREGISTRER_FACT=1` est définie (désactivé par défaut ; un échec d'écriture est journalisé et n'empêche pas l'affichage).
 9. L'utilisateur voit les indicateurs, le verdict et le graphique sur la page résultat.
 
 Le site est maintenant déployé sur AlwaysData et ce parcours est disponible sur la version en ligne.
@@ -94,13 +96,13 @@ Le site est maintenant déployé sur AlwaysData et ce parcours est disponible su
 
 Le MVP demandé pour le J3 fonctionne de bout en bout. Nous avons privilégié le fonctionnement complet de la chaîne avant d'ajouter davantage de fonctionnalités.
 
-Le résultat reste une projection climatique et non une prévision exacte. Les indicateurs du J3 sont également calculés sur l'année entière. La prise en compte plus précise de la saison propre à chaque culture est prévue pour la suite du projet.
+Le résultat reste une projection climatique et non une prévision exacte. Les indicateurs du J3 sont également calculés sur l'année entière. La prise en compte plus précise de la saison propre à chaque culture est prévue pour la suite du projet. La règle du verdict est provisoire (jours de stress thermique et GDD de maturité) et sera remplacée par la règle validée par l'équipe.
 
 ## 4. Obstacles & décisions
 
 ### Obstacles rencontrés
 
-- Au début de l'intégration, le pôle DEV pensait que certaines valeurs du payload étaient `null`, alors que le problème ne venait finalement pas des données transmises.
+- Au début de l'intégration, le pôle DEV pensait que certaines valeurs du payload étaient `null`, alors que le problème venait d'une inadéquation de format : l'API Open-Meteo renvoie des tableaux parallèles (`time`, `temperature_2m_min`, etc.). Ces tableaux ont été transformés en une liste de jours (`date`, `t_min`, `t_max`, `t_moy`, `precip`) conforme au contrat d'interface, directement exploitable par le pôle DATA, sans altération ni valeur inventée (une valeur absente reste `null`).
 - Une erreur de connexion à la base a été rencontrée à cause d'un mot de passe mal saisi, puis corrigée.
 - Plusieurs membres du pôle DEV travaillaient parfois sur les mêmes fichiers, notamment `app/blueprints/analyse/routes.py`, ce qui demandait de faire attention aux conflits Git pendant les merges.
 - Il a fallu adapter la configuration entre le développement local et le déploiement sur AlwaysData.
@@ -112,7 +114,9 @@ Le résultat reste une projection climatique et non une prévision exacte. Les i
 - Pour le J3, les indicateurs sont calculés sur l'année entière. La saison propre à chaque culture sera prise en compte lors du J4.
 - Un jour de gel correspond à une température minimale strictement inférieure au seuil de gel de la culture.
 - Une année est considérée comme suffisamment complète lorsque au moins 90 % des jours nécessaires sont disponibles.
-- Le bilan hydrique est calculé uniquement lorsque les informations nécessaires, notamment la latitude, sont disponibles.
+- Le bilan hydrique est égal aux précipitations moins l'évapotranspiration estimée par la formule de Hargreaves-Samani (à partir des températures et de la latitude ; le champ ET0 d'Open-Meteo n'est pas utilisé). Il n'est calculé que si la latitude est disponible.
+- Cas limites gérés par le module : valeur manquante ou incohérente (t_min > t_max) → jour ignoré et compté dans `nb_jours_ignores` ; année sans gel → 0 jour ; journée exactement au seuil → non comptée comme gel (comparaison stricte), mais comptée comme stress thermique (comparaison ≥) ; année incomplète (< 90 %) → exclue de la moyenne.
+- Le scénario d'émissions est unique (Open-Meteo n'en propose qu'un, proche du plus pessimiste) : il est affiché comme tel et jamais comme « médian ».
 - Les identifiants provenant du formulaire sont vérifiés côté serveur avant le lancement du calcul.
 - Les erreurs provenant de l'API ou de la base doivent être affichées proprement à l'utilisateur et ne doivent pas provoquer une page 500.
 - Les secrets et informations de connexion sont stockés dans les variables d'environnement et non dans le dépôt Git.
@@ -120,15 +124,19 @@ Le résultat reste une projection climatique et non une prévision exacte. Les i
 
 ## 5. Indicateurs
 
-- **Avancement par rapport aux objectifs du sprint : 100 %.**
-- 🌱 **Usage IA sur le sprint :** voir les journaux IA individuels des membres de l'équipe. Le nombre exact de tokens n'étant pas directement mesurable dans notre utilisation de nos IA, il est indiqué comme `non mesurable` lorsque nécessaire.
+- **Avancement par rapport aux objectifs du sprint :** 3 jalons sur 3 réalisés (3.1 requêtes RGPD corrigées et testées sur la base ; 3.2 ; 3.3).
+- **Tests :** suite `pytest` dans `tests/` (analyse, calcul des indicateurs, client Open-Meteo, payload, références, tableau de bord) : 101 tests, tous passent (exécution du 23/11/2026).
+- **Usage IA sur le sprint :** voir les journaux IA individuels des membres de l'équipe. Le nombre exact de tokens n'étant pas directement mesurable dans notre utilisation de nos IA, il est indiqué comme `non mesurable` lorsque nécessaire.
 
 ## 6. Plan du prochain sprint
 
 ### Priorités
 
 - Prendre en compte la vraie saison de culture grâce aux informations `mois_debut` et `mois_fin`.
-- Compléter et mieux sourcer les seuils agricoles manquants.
+- Compléter et mieux sourcer les seuils agricoles manquants : en cas d'écart faible entre sources, retenir la valeur la plus prudente et noter la fourchette ; sans source, conserver la valeur et écrire « non sourcé ».
+- Comparer l'ET0 Hargreaves à une valeur de référence.
+- Valider la règle de verdict (actuellement provisoire).
+- Activer et vérifier l'écriture dans `Fact_Indicateur` sur la version en ligne.
 - Ajouter ou améliorer les indicateurs.
 - Comparer différents modèles ou horizons climatiques.
 - Améliorer progressivement l'interface et la restitution des résultats.
@@ -170,3 +178,4 @@ Le résultat reste une projection climatique et non une prévision exacte. Les i
 - Faire les merges plus régulièrement afin d'éviter des différences trop importantes entre les branches.
 - Valider les contrats et formats d'échange encore plus tôt avant de commencer l'intégration.
 - Continuer à documenter clairement les décisions communes entre DEV et DATA.
+- Versionner et dater chaque évolution du contrat d'interface, et poser un tag Git à chaque jalon.
