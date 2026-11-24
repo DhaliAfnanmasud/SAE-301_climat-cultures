@@ -226,13 +226,19 @@ def test_api_indisponible_affiche_un_message_clair():
     with _fausse_base(), patch(
         f"{ROUTES}.construire_payload",
         side_effect=RuntimeError("Le service Open-Meteo est indisponible."),
-    ):
+    ), patch(CALCUL) as mock_calcul:
         reponse = _client().get(URL)
 
     assert reponse.status_code == 503
+
     page = reponse.get_data(as_text=True)
+
     assert "Le service Open-Meteo est indisponible." in page
     assert "Réessayer" in page
+    assert "alert-danger" in page
+    assert "graphique-climat" not in page
+
+    mock_calcul.assert_not_called()
 
 
 def test_erreur_inattendue_ne_donne_jamais_une_page_500():
