@@ -68,3 +68,12 @@ def lire_modele(id_modele):
     if modele is None:
         return None
     return {"id_modele": modele.id_modele, "code_api": modele.code_api}
+
+
+def valider_modele(code_api):
+    modele = DimModele.query.filter_by(code_api=code_api).first()
+
+    if modele is None:
+        raise ValueError("Modèle climatique inconnu.")
+
+    return modele.code_api
