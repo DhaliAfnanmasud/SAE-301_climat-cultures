@@ -15,4 +15,5 @@ app = create_app(config_class)
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 8100))
-    app.run(host='0.0.0.0', port=port)
+    # on met 127.0.0.1 ici avec DEBUG actif à la place de 0.0.0.0 car cela exposerait le débogueur sur le réseau local.
+    app.run(host='127.0.0.1', port=port)
