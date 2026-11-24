@@ -8,7 +8,16 @@ load_dotenv()
 
 class Config:
     SECRET_KEY = os.environ.get("SECRET_KEY", "cle-secrete-dev")
-    SQLALCHEMY_TRACK_MODIFICATIONS = False
+    SQLALCHEMY_TRACK_MODIFICATIONS = False    
+    
+    # Cookies de session  :
+    # - Secure : réservé à la production (HTTPS), voir ProdConfig.
+    SESSION_COOKIE_HTTPONLY = True  # HttpOnly : le cookie est invisible pour le JavaScript de la page ;
+    SESSION_COOKIE_SAMESITE = "Lax" # SameSite=Lax : il n'est pas envoyé lors d'un envoi de formulaire venant d'un autre site(défense en plus du jeton CSRF) ;
+    SESSION_COOKIE_SECURE = False   # Secure : réservé à la production HTTPS.
+    REMEMBER_COOKIE_HTTPONLY = True
+    REMEMBER_COOKIE_SAMESITE = "Lax"
+    REMEMBER_COOKIE_SECURE = False
 
 
 class DevConfig(Config):
@@ -28,5 +37,7 @@ class DevConfig(Config):
 
 class ProdConfig(Config):
     DEBUG = False
+    SESSION_COOKIE_SECURE = True
+    REMEMBER_COOKIE_SECURE = True
     SECRET_KEY = os.environ.get("SECRET_KEY")
     SQLALCHEMY_DATABASE_URI = os.environ.get("DATABASE_URL")
