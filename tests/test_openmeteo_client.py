@@ -10,6 +10,8 @@ from app.services.openmeteo_client import (
 )
 from requests.exceptions import Timeout
 from app.services.cache import generer_cle_cache
+from sqlalchemy import create_engine
+from app.services import cache
 
 
 def test_format_contrat_dev_data():
@@ -454,3 +456,74 @@ def test_cle_cache_change_si_parametre_change():
 
     assert generer_cle_cache(parametres_1) != generer_cle_cache(parametres_2)
 
+
+def test_cache_multi_modeles(tmp_path, monkeypatch):
+    # Création d'un vrai cache SQLite temporaire pour le test
+    moteur_test = create_engine(
+        f"sqlite:///{tmp_path / 'cache_test.db'}"
+    )
+
+    monkeypatch.setattr(cache, "moteur", moteur_test)
+    cache.Base.metadata.create_all(moteur_test)
+
+    daily_mri = {
+        "time": ["2049-01-01"],
+        "temperature_2m_min": [5.0],
+        "temperature_2m_max": [12.0],
+        "temperature_2m_mean": [8.5],
+        "precipitation_sum": [0.1],
+    }
+
+    daily_cmcc = {
+        "time": ["2049-01-01"],
+        "temperature_2m_min": [7.0],
+        "temperature_2m_max": [14.0],
+        "temperature_2m_mean": [10.5],
+        "precipitation_sum": [0.3],
+    }
+
+    reponse_mri = Mock()
+    reponse_mri.status_code = 200
+    reponse_mri.json.return_value = {"daily": daily_mri}
+
+    reponse_cmcc = Mock()
+    reponse_cmcc.status_code = 200
+    reponse_cmcc.json.return_value = {"daily": daily_cmcc}
+
+    try:
+        with patch(
+            "app.services.openmeteo_client.requests.get",
+            side_effect=[reponse_mri, reponse_cmcc]
+        ) as mock_get:
+
+            def recuperer(modele):
+                return recuperer_climat(
+                    43.60,
+                    1.44,
+                    modele,
+                    "2049-01-01",
+                    "2049-12-31"
+                )
+
+            # Premier modèle : un appel API
+            assert recuperer("MRI_AGCM3_2_S") == daily_mri
+            assert mock_get.call_count == 1
+
+            # Même modèle : utilisation du cache
+            assert recuperer("MRI_AGCM3_2_S") == daily_mri
+            assert mock_get.call_count == 1
+
+            # Deuxième modèle : nouvel appel API
+            assert recuperer("CMCC_CM2_VHR4") == daily_cmcc
+            assert mock_get.call_count == 2
+
+            # Même deuxième modèle : utilisation du cache
+            assert recuperer("CMCC_CM2_VHR4") == daily_cmcc
+            assert mock_get.call_count == 2
+
+            # Le premier modèle est toujours dans le cache
+            assert recuperer("MRI_AGCM3_2_S") == daily_mri
+            assert mock_get.call_count == 2
+
+    finally:
+        moteur_test.dispose()
