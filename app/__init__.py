@@ -1,6 +1,6 @@
 from flask import Flask, render_template
 from app.config import DevConfig
-from app.extensions import db, csrf
+from app.extensions import db, csrf, login_manager
 
 def create_app(config_class=DevConfig):
     app = Flask(__name__)
@@ -9,6 +9,7 @@ def create_app(config_class=DevConfig):
 
     db.init_app(app)
     csrf.init_app(app)
+    login_manager.init_app(app)
 
     # Enregistrements des blueprints
     from app.blueprints.main import main_bp
