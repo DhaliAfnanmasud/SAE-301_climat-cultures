@@ -1,6 +1,7 @@
 from flask import jsonify, request, render_template
 from app.blueprints.main import main_bp
 from app.services.openmeteo_client import recuperer_series_commune
+from app.services.references import valider_modele
 
 
 @main_bp.route('/')
@@ -50,6 +51,8 @@ def indicateurs():
         }), 400
 
     try:
+        modele = valider_modele(modele)
+
         resultat = recuperer_series_commune(commune, modele, date_debut, date_fin)
     except ValueError as erreur:
         return jsonify({"erreur": str(erreur)}), 400
