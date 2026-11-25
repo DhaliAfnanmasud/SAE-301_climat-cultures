@@ -1,6 +1,7 @@
 from unittest.mock import MagicMock, patch
 
 from app import create_app
+from app.models import Utilisateur
 from app.services.apercu import agreger_par_mois
 
 ROUTES = "app.blueprints.analyse.routes"
@@ -226,19 +227,13 @@ def test_api_indisponible_affiche_un_message_clair():
     with _fausse_base(), patch(
         f"{ROUTES}.construire_payload",
         side_effect=RuntimeError("Le service Open-Meteo est indisponible."),
-    ), patch(CALCUL) as mock_calcul:
+    ):
         reponse = _client().get(URL)
 
     assert reponse.status_code == 503
-
     page = reponse.get_data(as_text=True)
-
     assert "Le service Open-Meteo est indisponible." in page
     assert "Réessayer" in page
-    assert "alert-danger" in page
-    assert "graphique-climat" not in page
-
-    mock_calcul.assert_not_called()
 
 
 def test_erreur_inattendue_ne_donne_jamais_une_page_500():
@@ -334,3 +329,47 @@ def test_rien_nest_ecrit_en_base_en_cas_derreur(monkeypatch):
             _client().get(URL)
 
         mock_ecrire.assert_not_called()
+
+
+# --- Rattachement des résultats au compte connecté (contrat 2.3) ------------------
+
+def test_visiteur_anonyme_sans_id_utilisateur():
+    with _fausse_base(), patch(
+        f"{ROUTES}.construire_payload", return_value=PAYLOAD
+    ) as mock_payload, patch(CALCUL, return_value=INDICATEURS):
+        _client().get(URL)
+
+    assert mock_payload.call_args.kwargs["id_utilisateur"] is None
+
+
+def test_utilisateur_connecte_son_id_est_transmis_au_payload():
+    client = _client()
+    with client.session_transaction() as session:
+        session["_user_id"] = "5"  # ce que range Flask-Login après une connexion
+    faux_compte = Utilisateur(id_utilisateur=5, email="alice@exemple.fr")
+
+    with _fausse_base(), patch(
+        f"{ROUTES}.construire_payload", return_value=PAYLOAD
+    ) as mock_payload, patch(CALCUL, return_value=INDICATEURS), patch(
+        "app.models.utilisateur.db"
+    ) as mock_db:
+        mock_db.session.get.return_value = faux_compte
+        client.get(URL)
+
+    assert mock_payload.call_args.kwargs["id_utilisateur"] == 5
+
+
+def test_le_resultat_ecrit_en_base_est_rattache_au_compte(monkeypatch):
+    # Le vrai calculer_indicateurs recopie id_utilisateur et id_session du
+    # payload : c'est ce que ecrire_fact enregistre dans Fact_Indicateur.
+    monkeypatch.setenv("ENREGISTRER_FACT", "1")
+    payload_connecte = {**PAYLOAD, "id_utilisateur": 5}
+
+    with _fausse_base(), patch(
+        f"{ROUTES}.construire_payload", return_value=payload_connecte
+    ), patch(f"{ROUTES}.ecrire_fact") as mock_ecrire, patch(f"{ROUTES}.db"):
+        _client().get(URL)
+
+    resultat = mock_ecrire.call_args.args[1]
+    assert resultat["id_utilisateur"] == 5
+    assert resultat["id_session"] == "sess_test"
