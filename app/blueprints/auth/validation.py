@@ -50,7 +50,7 @@ def est_destination_sure(cible):
 
     Le paramètre ?next= vient de l'URL, donc de l'extérieur : sans ce contrôle,
     un lien piégé pourrait renvoyer l'utilisateur vers un site malveillant
-    juste après sa connexion (« open redirect »).
+    juste après sa connexion.
     """
     if not cible or not cible.startswith("/"):
         return False
