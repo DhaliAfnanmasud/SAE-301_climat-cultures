@@ -1,9 +1,9 @@
 # Contrat d'Interface DEV ⇄ DATA — SAÉ 3.01 (Climat & Cultures)
 
-**Version :** 1.3
-**Jalon :** Jalon 2 (Semaine 41, mis à jour en S45), complété en Jalon 3 (S47) pour l'intégration
+**Version :** 1.4
+**Jalon :** Jalon 2 (Semaine 41, mis à jour en S45), complété en Jalon 3 (S47) pour l'intégration, puis en Jalon 4 (S49) pour les comptes utilisateurs
 **Format retenu :** JSON ➔ JSON
-**Statut :** Validé (conforme au schéma en étoile du datamart et au module `calcul_indicateurs.py`)
+**Statut :** Validé (conforme au schéma en étoile du datamart et au module `calcul_indicateurs.py`). La section 2.3 de la v1.4 a été validée par DATA ; leurs réserves sont reprises en 2.3.
 
 ### Historique des versions
 
@@ -13,6 +13,7 @@
 | 1.1 | Ajout du champ d'entrée optionnel `latitude` (bilan hydrique). Ajout du flux sortant DATA ➔ DEV (section 3), des règles de calcul partagées (section 4) et des erreurs (section 5). Précision : `id_utilisateur` est un entier. |
 | 1.2 | Préparation de l'intégration (J3). `id_session` toujours transmis par DEV, même pour un utilisateur connecté (2.3). Période d'un horizon lue dans `Dim_Temps` et `latitude` lue dans `Dim_Commune` (2.4). Correspondance des variables Open-Meteo → contrat (2.5). Ordre d'appel du module et écriture en base côté DEV (3.4). |
 | 1.3 | Décision d'équipe sur la fenêtre de calcul (4.1) : année entière en J3, puis saison de chaque culture à partir de J4 (une période semis → récolte par culture, colonnes `mois_debut` / `mois_fin` dans `Dim_Culture`). Mois à sourcer par DATA. |
+| 1.4 | Comptes utilisateurs (J4.1). `id_utilisateur` est renseigné par DEV quand un compte est connecté (2.3). `id_session` est renouvelé à la connexion et à la déconnexion : la session Flask est vidée (2.3). Les calculs faits avant la connexion restent anonymes. |
 
 ---
 
@@ -92,7 +93,18 @@ DEV envoie **toujours** un `id_session`, que le visiteur soit anonyme ou connect
 
 **Pourquoi :** la contrainte d'unicité `uq_fait` de `Fact_Indicateur` porte sur commune, culture, horizon, modèle et **session**, mais pas sur l'utilisateur. Si `id_session` manquait, il serait écrit `''` en base. Deux comptes différents faisant la même recherche partageraient alors la même clé, et le second calcul écraserait la ligne du premier, qui resterait au nom du premier compte. Cela casserait l'isolation des données et l'effacement RGPD.
 
-L'identifiant est créé à la première visite (`"sess_" + uuid4().hex`), rangé dans la session Flask (cookie signé avec `SECRET_KEY`) et réutilisé ensuite. En production, `SECRET_KEY` doit être définie dans les variables d'environnement : avec la valeur par défaut, un cookie de session pourrait être falsifié.
+L'identifiant est créé à la première visite (`"sess_" + uuid4().hex`), rangé dans la session Flask (cookie signé avec `SECRET_KEY`) et réutilisé ensuite.
+
+**Renouvellement de `id_session` (v1.4).** La session Flask est vidée à la connexion et à la déconnexion : un nouvel `id_session` est alors créé au prochain calcul. Ainsi, deux comptes qui se succèdent sur le même navigateur ne partagent jamais le même `id_session` (voir « Pourquoi » ci-dessus), et un visiteur qui se connecte ne reprend pas l'identifiant de sa visite anonyme. Les calculs faits avant sa connexion restent donc anonymes (`id_utilisateur = null`) et ne sont pas rattachés à son compte.
+
+**Rattachement au compte (v1.4).** DEV lit l'identifiant du compte connecté (entier, `current_user.id_utilisateur`) et le passe dans le payload à `construire_payload(...)` ; il vaut `null` pour un visiteur anonyme. `calculer_indicateurs` le recopie dans le résultat, et `ecrire_fact` l'écrit dans `Fact_Indicateur.id_utilisateur`. Remarque pour DATA : la clause `ON DUPLICATE KEY UPDATE` de `ecrire_fact` ne modifie pas `id_utilisateur` ; une ligne garde donc le compte qui l'a créée. C'est sans conséquence tant qu'un `id_session` n'est jamais partagé entre deux comptes, ce que garantit le renouvellement ci-dessus. En production, `SECRET_KEY` doit être définie dans les variables d'environnement : avec la valeur par défaut, un cookie de session pourrait être falsifié.
+
+**Réserves de DATA sur la v1.4 (prises en compte).**
+
+1. **`id_session` n'est jamais vide.** DEV le garantit par du code (`construire_payload` refuse un `id_session` vide ou absent, avec une `ValueError`) et par des tests. Une valeur vide serait écrite `''` en base et partagée entre visiteurs.
+2. **`id_utilisateur` n'est pas modifié par la clause `ON DUPLICATE KEY UPDATE`** de `ecrire_fact` (vérifié dans `SQL_UPSERT`). Une ligne garde le compte qui l'a créée.
+3. **Une ligne par session pour un même compte.** Pour lire le dernier calcul d'un compte, on filtre sur `id_utilisateur` avec `ORDER BY date_calcul DESC, id_fait DESC LIMIT 1`.
+4. **Les lignes créées avant la connexion ne sont pas supprimées avec le compte** : elles ont `id_utilisateur = NULL`, donc la suppression en cascade ne les concerne pas. Elles sont purgées comme toute session anonyme (conception RGPD, §5.4). À documenter côté RGPD ; la page « Mon compte » en informe déjà l'utilisateur.
 
 ### 2.4 Données lues en base par DEV avant l'appel à l'API
 
@@ -178,7 +190,7 @@ Le résultat est écrit dans `Fact_Indicateur` par la fonction `ecrire_fact(conn
 La route enchaîne toujours les étapes dans cet ordre :
 
 1. **Vérifier les choix** de l'utilisateur (commune, culture, horizon, modèle) en base.
-2. **Construire le payload** de la section 2 : `construire_payload(...)` (lecture des dimensions, appel Open-Meteo avec cache, correspondance des variables).
+2. **Construire le payload** de la section 2 : `construire_payload(...)` (lecture des dimensions, appel Open-Meteo avec cache, correspondance des variables), avec `id_session` et, si un compte est connecté, son `id_utilisateur`.
 3. **Calculer** : `resultat = calculer_indicateurs(payload)`.
 4. **Écrire en base** : `ecrire_fact(conn, resultat)`. Uniquement si l'étape 3 a réussi.
 5. **Afficher** le résultat à l'utilisateur (indicateurs, verdict, source Open-Meteo et avertissement sur les projections).
