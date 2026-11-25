@@ -4,15 +4,64 @@
 
 {% block content %}
 <div class="container py-5">
-    <h1>Créer un compte</h1>
+    <div class="row g-0 rounded-4 overflow-hidden shadow">
 
-    <div class="alert alert-info mt-4" role="status">
-        <i class="bi bi-cone-striped" aria-hidden="true"></i>
-        Cette page est en cours de construction.
+        {# Panneau de gauche (maquette) : masqué sur petit écran #}
+        <div class="col-lg-5 d-none d-lg-flex flex-column justify-content-center p-5 text-white"
+             style="background-color: var(--cc-vert-fonce);">
+            <p class="text-uppercase small mb-2">Une communauté engagée</p>
+            <h2 class="display-6">Cultivons ensemble un avenir plus vivant.</h2>
+            <p class="mb-0">
+                Créez votre compte pour retrouver vos analyses et agir à votre échelle.
+            </p>
+        </div>
+
+        {# Formulaire #}
+        <div class="col-lg-7 p-4 p-md-5 text-dark" style="background-color: var(--cc-clair-2);">
+            <h1 class="h3">Créer votre compte</h1>
+        
+            <form method="post" novalidate>
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                <div class="mb-3">
+                    <label for="email" class="form-label">Adresse e-mail</label>
+                    <input type="email" class="form-control" id="email" name="email"
+                           value="{{ email }}" autocomplete="email" maxlength="150" required autofocus>
+                </div>
+
+                <div class="mb-3">
+                    <label for="mot_de_passe" class="form-label">Mot de passe</label>
+                    <input type="password" class="form-control" id="mot_de_passe"
+                           name="mot_de_passe" autocomplete="new-password"
+                           minlength="8" maxlength="128" aria-describedby="aide-mdp" required>
+                    <div id="aide-mdp" class="form-text">8 caractères minimum.</div>
+                </div>
+
+                {# Information RGPD : données collectées, finalité, conservation, droits #}
+                <div class="small text-muted mb-3">
+                    <strong>Vos données.</strong> Nous conservons uniquement votre adresse e-mail
+                    et votre mot de passe. Elles servent à afficher vos propres résultats, et sont conservées
+                    jusqu'à la suppression de votre compte. Vous pouvez demander cette suppression à tout moment via la
+                    page <a href="{{ url_for('main.contact') }}">Contact</a>.
+                </div>
+
+                {# Case non précochée : le consentement doit être un acte volontaire #}
+                <div class="form-check mb-4">
+                    <input class="form-check-input" type="checkbox" id="consentement"
+                           name="consentement" required>
+                    <label class="form-check-label" for="consentement">
+                        J'accepte les conditions d'utilisation et la
+                        <a href="{{ url_for('main.rgpd') }}">politique de confidentialité</a>.
+                    </label>
+                </div>
+
+                <button type="submit" class="btn btn-climat w-100">Créer mon compte</button>
+            </form>
+
+            <p class="mt-4 mb-0 small text-center">
+                Vous avez déjà un compte ? <a href="{{ url_for('auth.connexion') }}">Se connecter</a>
+            </p>
+        </div>
     </div>
-
-    <a href="{{ url_for('main.home') }}" class="btn btn-outline-secondary">
-        <i class="bi bi-arrow-left" aria-hidden="true"></i> Retour à l'accueil
-    </a>
 </div>
 {% endblock %}
