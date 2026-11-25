@@ -15,6 +15,14 @@ PAYLOAD = {
         {"date": "2049-01-02", "t_min": 4.0, "t_max": 12.0, "t_moy": 8.0, "precip": 2.5},
     ],
 }
+
+# Mêmes jours, mais en juillet : dans la saison du maïs (avril-octobre),
+# pour le test qui passe par le vrai module de calcul.
+PAYLOAD_EN_SAISON = {
+    **PAYLOAD,
+    "series": [dict(j, date="2049-07" + j["date"][7:]) for j in PAYLOAD["series"]],
+}
+
 URL = "/analyse/resultat?commune=13&culture=1&horizon=2"
 
 # Résultat simulé de calculer_indicateurs (module de DATA).
@@ -113,7 +121,7 @@ def test_serie_incomplete_affiche_un_avertissement():
 def test_chaine_complete_avec_le_vrai_module_de_calcul():
     # Aucun faux calcul ici : le payload (2 jours) passe dans le vrai
     # calculer_indicateurs de DATA. Deux jours ne font pas une année complète.
-    with _fausse_base(), patch(f"{ROUTES}.construire_payload", return_value=PAYLOAD):
+    with _fausse_base(), patch(f"{ROUTES}.construire_payload", return_value=PAYLOAD_EN_SAISON):
         reponse = _client().get(URL)
 
     page = reponse.get_data(as_text=True)

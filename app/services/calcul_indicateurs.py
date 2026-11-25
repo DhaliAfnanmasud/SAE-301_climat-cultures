@@ -22,11 +22,11 @@ MOYENNE PAR AN. Une année « incomplète » (< 90 % des jours attendus) est exc
 moyenne, sauf si aucune année n'est complète (série courte de test) : on calcule alors
 sur ce qu'on a et on renvoie serie_incomplete = True.
 
-LIMITE ASSUMÉE (à arbitrer par l'équipe) : par défaut les indicateurs portent sur
-l'ANNÉE ENTIÈRE. Le gel d'hiver et le GDD hors saison ne sont pas agronomiquement
-pertinents pour une culture de printemps. Le paramètre "saison" = (mois_debut, mois_fin)
-de chaque culture permet de restreindre le calcul ; il vaut None par défaut pour ne pas
-changer les valeurs de référence des documents.
+SAISON DE CULTURE (J4.1) : chaque culture a une saison (mois_debut, mois_fin), sourcée dans
+Dim_Culture.source_saison. Seuls les jours de la saison comptent pour les indicateurs (le gel d'hiver
+et le GDD hors saison ne sont pas pertinents pour une culture de printemps). Le colza garde
+l'année entière (saison = None) : son cycle dure presque 12 mois. Si mois_debut > mois_fin,
+la saison passe sur le nouvel an. Les valeurs de référence J3 (année entière) ne sont plus valables.
 """
 from __future__ import annotations
 
@@ -37,12 +37,15 @@ from datetime import date, timedelta
 # Parametres des cultures : doivent rester identiques a Dim_Culture
 # (verifie par test_coherence_dim_culture_sql). A terme : les lire en base.
 # "saison" : (mois_debut, mois_fin) inclus, None = annee entiere.
+# J4.1 : saisons de culture (memes valeurs que Dim_Culture.mois_debut / mois_fin).
+#   mais 4-10, tournesol 3-10, pomme de terre 3-9, colza None (cycle ~ toute l'annee).
+#   sources : voir Dim_Culture.source_saison et le fichier de decisions.
 
 CULTURES = {
-    1: {"nom": "Maïs grain",      "base": 6, "plafond": 30,   "seuil_gel": 0,   "seuil_stress": 35, "gdd_maturite": 1600, "saison": None},
-    2: {"nom": "Tournesol",       "base": 6, "plafond": None, "seuil_gel": -4,  "seuil_stress": 34, "gdd_maturite": 1500, "saison": None},
+    1: {"nom": "Maïs grain",      "base": 6, "plafond": 30,   "seuil_gel": 0,   "seuil_stress": 35, "gdd_maturite": 1600, "saison": (4, 10)},
+    2: {"nom": "Tournesol",       "base": 6, "plafond": None, "seuil_gel": -4,  "seuil_stress": 34, "gdd_maturite": 1500, "saison": (3, 10)},
     3: {"nom": "Colza",           "base": 0, "plafond": None, "seuil_gel": -15, "seuil_stress": 29, "gdd_maturite": 2330, "saison": None},
-    4: {"nom": "Pomme de terre",  "base": 5, "plafond": None, "seuil_gel": -2,  "seuil_stress": 28, "gdd_maturite": 1050, "saison": None},
+    4: {"nom": "Pomme de terre",  "base": 5, "plafond": None, "seuil_gel": -2,  "seuil_stress": 28, "gdd_maturite": 1050, "saison": (3, 9)},
 }
 
 # Verdict — RÈGLE PROVISOIRE (à remplacer par la règle validée de l'équipe).
@@ -245,6 +248,8 @@ def calculer_indicateurs(payload: dict, cultures: dict | None = None) -> dict:
         "nb_annees_incompletes": len(par_annee) - sum(complete.values()),
         "serie_incomplete": serie_incomplete,
         "nb_jours_ignores": sum(r["ignores"] for r in resultats),
+        "saison_debut": culture["saison"][0] if culture["saison"] else 1,
+        "saison_fin": culture["saison"][1] if culture["saison"] else 12,
     }
 
 
@@ -254,8 +259,9 @@ def calculer_indicateurs(payload: dict, cultures: dict | None = None) -> dict:
 SQL_UPSERT = """
 INSERT INTO Fact_Indicateur
   (id_commune, id_culture, id_temps, id_modele, id_verdict, id_session,
-   id_utilisateur, jours_gel, gdd, jours_stress_thermique, bilan_hydrique_mm, date_calcul)
-VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW())
+   id_utilisateur, saison_debut, saison_fin, jours_gel, gdd,
+   jours_stress_thermique, bilan_hydrique_mm, date_calcul)
+VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW())
 ON DUPLICATE KEY UPDATE
   id_verdict = VALUES(id_verdict), jours_gel = VALUES(jours_gel), gdd = VALUES(gdd),
   jours_stress_thermique = VALUES(jours_stress_thermique),
@@ -272,7 +278,7 @@ def ecrire_fact(conn, resultat: dict) -> None:
     with conn.cursor() as cur:
         cur.execute(SQL_UPSERT, (
             r["id_commune"], r["id_culture"], r["id_temps"], r["id_modele"], r["id_verdict"],
-            r["id_session"] or "", r["id_utilisateur"], r["jours_gel"], r["gdd"],
-            r["jours_stress_thermique"], r["bilan_hydrique_mm"],
+            r["id_session"] or "", r["id_utilisateur"], r["saison_debut"], r["saison_fin"],
+            r["jours_gel"], r["gdd"], r["jours_stress_thermique"], r["bilan_hydrique_mm"],
         ))
     conn.commit()

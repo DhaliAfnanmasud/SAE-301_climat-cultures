@@ -19,6 +19,8 @@ import os
 import re
 import sys
 from datetime import date, timedelta
+from app.services.calcul_indicateurs import calculer_indicateurs, ecrire_fact, CULTURES
+
 
 # ADAPTATION DEV (1) : le module est dans app/services (racine du projet dans sys.path)
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
@@ -27,7 +29,7 @@ from app.services.calcul_indicateurs import (CULTURES, _et0_hargreaves,  # noqa:
                                              calculer_indicateurs, ecrire_fact)
 
 ICI = os.path.dirname(os.path.abspath(__file__))
-
+CULTURES_ANNEE = {i: {**c, "saison": None} for i, c in CULTURES.items()}
 
 def _chemin_sample():
     candidats = [os.environ.get("SAMPLE_DATA"),
@@ -74,7 +76,7 @@ def _leve(payload, fragment=""):
 
 def test_valeurs_de_reference():
     """Cas 1 du document : gel 20, GDD 3136.9, stress 11, bilan NULL, viable."""
-    r = calculer_indicateurs(charger())
+    r = calculer_indicateurs(charger(), cultures=CULTURES_ANNEE)
     assert (r["jours_gel"], r["gdd"], r["jours_stress_thermique"]) == (20, 3136.9, 11), r
     assert r["bilan_hydrique_mm"] is None and r["verdict"] == "viable", r
     assert r["nb_annees"] == 1 and r["nb_jours_ignores"] == 0 and not r["serie_incomplete"], r
@@ -99,7 +101,7 @@ def test_annee_sans_gel():
     p = charger()
     for j in p["series"]:
         j["t_min"] = max(j["t_min"], 1.0)
-    r = calculer_indicateurs(p)
+    r = calculer_indicateurs(p, cultures=CULTURES_ANNEE)
     assert (r["jours_gel"], r["gdd"], r["jours_stress_thermique"]) == (0, 3136.9, 11), r
 
 
@@ -108,7 +110,7 @@ def test_canicule_document():
     p = charger()
     for j in p["series"][:40]:
         j["t_max"] = 38.0
-    r = calculer_indicateurs(p)
+    r = calculer_indicateurs(p, cultures=CULTURES_ANNEE)
     assert (r["jours_gel"], r["gdd"], r["jours_stress_thermique"], r["verdict"]) == (20, 3561.6, 51, "non_viable"), r
 
 
@@ -135,7 +137,7 @@ def test_moyenne_sur_deux_annees():
     for j in s2:
         j["date"] = "2011" + j["date"][4:]
     p["series"] = p["series"] + s2
-    r = calculer_indicateurs(p)
+    r = calculer_indicateurs(p, cultures=CULTURES_ANNEE)
     assert (r["jours_gel"], r["gdd"], r["jours_stress_thermique"], r["nb_annees"]) == (20, 3136.9, 11, 2), r
 
 
@@ -144,7 +146,7 @@ def test_horizon_onze_annees():
     p = charger()
     base = [j for j in p["series"]]
     p["series"] = [dict(j, date=str(y) + j["date"][4:]) for y in range(2040, 2051) for j in base]
-    r = calculer_indicateurs(p)
+    r = calculer_indicateurs(p, cultures=CULTURES_ANNEE)
     assert r["nb_annees"] == 11 and r["gdd"] == 3136.9 and r["jours_gel"] == 20, r
 
 
@@ -171,14 +173,14 @@ def test_jour_ignore_si_tmin_absent():
 
 def test_valeurs_manquantes_echantillon():
     """Une valeur sur 20 supprimée : aucun indicateur ne peut dépasser la référence."""
-    ref = calculer_indicateurs(charger())
+    ref = calculer_indicateurs(charger(), cultures=CULTURES_ANNEE)
     p = charger()
     for i, j in enumerate(p["series"]):
         if i % 20 == 0:
             j["t_min"] = None
         if i % 20 == 10:
             j["precip"] = None
-    r = calculer_indicateurs(p)
+    r = calculer_indicateurs(p, cultures=CULTURES_ANNEE)
     assert r["nb_jours_ignores"] == 19, r
     assert r["gdd"] < ref["gdd"] and r["jours_gel"] <= ref["jours_gel"] and r["jours_stress_thermique"] <= ref["jours_stress_thermique"], r
 
@@ -284,14 +286,14 @@ def test_annee_partielle_exclue_de_la_moyenne():
     """1 an complet + 10 jours de l'année suivante : la moyenne ne dilue pas l'année partielle."""
     p = charger()
     p["series"] = p["series"] + [dict(j, date="2011" + j["date"][4:]) for j in p["series"][:10]]
-    r = calculer_indicateurs(p)
+    r = calculer_indicateurs(p, cultures=CULTURES_ANNEE)
     assert (r["gdd"], r["jours_gel"], r["nb_annees"], r["nb_annees_incompletes"]) == (3136.9, 20, 1, 1), r
     assert r["serie_incomplete"] is False
 
 
 def test_annee_bissextile_complete():
     s = _serie(date(2012, 1, 1), [(10, 25)] * 366)
-    r = calculer_indicateurs(_payload(s))
+    r = calculer_indicateurs(_payload(s), cultures=CULTURES_ANNEE)
     assert r["nb_annees"] == 1 and r["nb_annees_incompletes"] == 0 and not r["serie_incomplete"], r
     assert r["gdd"] == round(366 * (((10 + 25) / 2) - 6), 1), r
 
@@ -318,9 +320,9 @@ def test_bilan_hydrique_avec_latitude():
     """Valeur de non-régression (Toulouse 2010 : précip 1000,2 mm, ET0 Hargreaves ≈ 936 mm)."""
     p = charger()
     p["latitude"] = 43.6047
-    assert abs(calculer_indicateurs(p)["bilan_hydrique_mm"] - 64.2) < 0.5
-    p["latitude"] = 0                                               # latitude 0 valide (équateur)
-    assert calculer_indicateurs(p)["bilan_hydrique_mm"] is not None
+    assert abs(calculer_indicateurs(p, cultures=CULTURES_ANNEE)["bilan_hydrique_mm"] - 64.2) < 0.5
+    p["latitude"] = 0
+    assert calculer_indicateurs(p, cultures=CULTURES_ANNEE)["bilan_hydrique_mm"] is not None
 
 
 def test_latitude_absente():
@@ -403,7 +405,7 @@ def test_rgpd_requete_preparee():
     ecrire_fact(conn, calculer_indicateurs(_payload_minimal(id_utilisateur=999001, id_session="x'; DROP TABLE y;--")))
     sql, params = conn.journal[0]
     assert "999001" not in sql and "DROP" not in sql
-    assert sql.count("%s") == len(params) == 11
+    assert sql.count("%s") == len(params) == 13
     assert 999001 in params and "x'; DROP TABLE y;--" in params and conn.commits == 1
 
 
