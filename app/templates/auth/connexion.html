@@ -4,15 +4,52 @@
 
 {% block content %}
 <div class="container py-5">
-    <h1>Se connecter</h1>
+    <div class="row g-0 rounded-4 overflow-hidden shadow">
 
-    <div class="alert alert-info mt-4" role="status">
-        <i class="bi bi-cone-striped" aria-hidden="true"></i>
-        Cette page est en cours de construction.
+        {# Panneau de gauche (maquette) : masqué sur petit écran #}
+        <div class="col-lg-5 d-none d-lg-flex flex-column justify-content-center p-5 text-white"
+             style="background-color: var(--cc-vert-fonce);">
+            <p class="text-uppercase small mb-2">La culture en mouvement</p>
+            <h2 class="display-6">Agir pour le climat, ensemble.</h2>
+            <p class="mb-0">
+                Retrouvez vos analyses dans un espace personnel, pensé pour
+                suivre l'évolution du climat sur vos cultures.
+            </p>
+        </div>
+
+        {# Formulaire #}
+        <div class="col-lg-7 p-4 p-md-5 text-dark" style="background-color: var(--cc-clair-2);">
+            <h1 class="h3">Heureux de vous revoir</h1>
+            <p class="text-muted">Connectez-vous pour accéder à votre espace.</p>
+
+            <form method="post" novalidate>
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                <div class="mb-3">
+                    <label for="email" class="form-label">Adresse e-mail</label>
+                    <input type="email" class="form-control" id="email" name="email"
+                           autocomplete="email" maxlength="150" required autofocus>
+                </div>
+
+                <div class="mb-3">
+                    <label for="mot_de_passe" class="form-label">Mot de passe</label>
+                    <input type="password" class="form-control" id="mot_de_passe"
+                           name="mot_de_passe" autocomplete="current-password" required>
+                </div>
+
+                <div class="form-check mb-4">
+                    <input class="form-check-input" type="checkbox" id="souvenir" name="souvenir">
+                    <label class="form-check-label" for="souvenir">Se souvenir de moi</label>
+                </div>
+
+                <button type="submit" class="btn btn-climat w-100">Se connecter</button>
+            </form>
+
+            <p class="mt-4 mb-0 small text-center">
+                Vous n'avez pas encore de compte ?
+                <a href="{{ url_for('auth.inscription') }}">Créer un compte</a>
+            </p>
+        </div>
     </div>
-
-    <a href="{{ url_for('main.home') }}" class="btn btn-outline-secondary">
-        <i class="bi bi-arrow-left" aria-hidden="true"></i> Retour à l'accueil
-    </a>
 </div>
 {% endblock %}
