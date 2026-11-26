@@ -380,16 +380,34 @@ def test_utilisateur_connecte_son_id_est_transmis_au_payload():
 
 
 def test_le_resultat_ecrit_en_base_est_rattache_au_compte(monkeypatch):
-    # Le vrai calculer_indicateurs recopie id_utilisateur et id_session du
-    # payload : c'est ce que ecrire_fact enregistre dans Fact_Indicateur.
     monkeypatch.setenv("ENREGISTRER_FACT", "1")
-    payload_connecte = {**PAYLOAD, "id_utilisateur": 5}
+
+    payload_connecte = {
+        **PAYLOAD,
+        "id_utilisateur": 5,
+        "series": [
+            {
+                **PAYLOAD["series"][0],
+                "date": "2049-05-01"
+            },
+            {
+                **PAYLOAD["series"][1],
+                "date": "2049-05-02"
+            },
+        ],
+    }
 
     with _fausse_base(), patch(
         f"{ROUTES}.construire_payload", return_value=payload_connecte
     ), patch(f"{ROUTES}.ecrire_fact") as mock_ecrire, patch(f"{ROUTES}.db"):
-        _client().get(URL)
+        reponse = _client().get(URL)
+
+    assert reponse.status_code == 200
+    mock_ecrire.assert_called_once()
 
     resultat = mock_ecrire.call_args.args[1]
+
     assert resultat["id_utilisateur"] == 5
     assert resultat["id_session"] == "sess_test"
+    assert resultat["saison_debut"] == 4
+    assert resultat["saison_fin"] == 10
