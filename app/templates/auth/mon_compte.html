@@ -1,0 +1,39 @@
+{% extends 'base.html' %}
+
+{% block title %}Mon compte | Climat &amp; Cultures{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <h1>Mon compte</h1>
+
+    <dl class="row mt-4">
+        <dt class="col-sm-3">Adresse e-mail</dt>
+        <dd class="col-sm-9">{{ current_user.email }}</dd>
+
+        <dt class="col-sm-3">Compte créé le</dt>
+        <dd class="col-sm-9">
+            {{ current_user.date_creation.strftime('%d/%m/%Y') if current_user.date_creation else '—' }}
+        </dd>
+
+        <dt class="col-sm-3">Consentement</dt>
+        <dd class="col-sm-9">
+            {% if current_user.consentement_rgpd and current_user.date_consentement %}
+            Donné le {{ current_user.date_consentement.strftime('%d/%m/%Y') }}
+            {% elif current_user.consentement_rgpd %}
+            Donné
+            {% else %}
+            Non renseigné
+            {% endif %}
+        </dd>
+    </dl>
+
+    <p class="text-muted">
+        L'historique de vos recherches et la suppression de votre compte
+        seront disponibles prochainement sur cette page.
+    </p>
+
+    <a href="{{ url_for('analyse.tableau_de_bord') }}" class="btn btn-climat">
+        Analyser une commune
+    </a>
+</div>
+{% endblock %}

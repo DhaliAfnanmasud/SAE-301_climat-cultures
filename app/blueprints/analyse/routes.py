@@ -1,6 +1,7 @@
 import os
 
 from flask import current_app, flash, redirect, render_template, request, url_for
+from flask_login import current_user
 
 from app.blueprints.analyse import analyse_bp
 from app.extensions import db
@@ -22,6 +23,17 @@ VERDICTS_AFFICHAGE = {
 }
 
 
+def _id_utilisateur_connecte():
+    """Identifiant du compte connecté, ou None pour un visiteur anonyme.
+
+    Il est transmis dans le payload (2.3 du contrat d'interface)
+    Le résultat écrit dans Fact_Indicateur est alors rattaché au compte, ce qui permet l'accès, la suppression et l'anonymisation RGPD.
+    """
+    if current_user.is_authenticated:
+        return current_user.id_utilisateur
+    return None
+
+
 def _page_erreur(message):
     """Affiche la page de résultat avec un message d'erreur clair (HTTP 503)
     à la place d'une page 500 : l'utilisateur peut réessayer."""
@@ -30,12 +42,6 @@ def _page_erreur(message):
 
 def _enregistrer_resultat(resultat):
     """Écrit le résultat dans Fact_Indicateur (fonction ecrire_fact de DATA).
-
-    Désactivé par défaut : il faut ENREGISTRER_FACT=1 dans le fichier .env.
-    L'écriture est un « upsert » (une ligne par commune, culture, horizon,
-    modèle et session) : recharger la page met la ligne à jour au lieu d'en
-    créer une nouvelle. Un échec d'écriture ne doit jamais empêcher
-    l'affichage du résultat : on le journalise et on continue.
     """
     if os.environ.get("ENREGISTRER_FACT") != "1":
         return
@@ -75,7 +81,8 @@ def resultat():
 
         # Construction du payload du contrat (appel Open-Meteo, cache inclus).
         payload = construire_payload(
-            commune, culture, horizon, MODELE_PAR_DEFAUT, obtenir_id_session()
+            commune, culture, horizon, MODELE_PAR_DEFAUT, obtenir_id_session(),
+            id_utilisateur=_id_utilisateur_connecte(),
         )
 
         # Noms à afficher dans le rappel du choix.

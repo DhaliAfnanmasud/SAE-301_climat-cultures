@@ -83,6 +83,18 @@ def test_deuxieme_modele_et_horizon_de_reference():
     )
 
 
+def test_payload_transmet_l_id_utilisateur_du_compte_connecte():
+    # Entier pour un compte connecté, None pour un visiteur anonyme.
+    with _fausse_base(), patch(
+        "app.services.payload.recuperer_climat", return_value=DAILY
+    ):
+        connecte = construire_payload(13, 1, 2, 1, "sess_test", id_utilisateur=5)
+        anonyme = construire_payload(13, 1, 2, 1, "sess_test")
+
+    assert connecte["id_utilisateur"] == 5
+    assert anonyme["id_utilisateur"] is None
+
+
 def test_payload_garde_les_valeurs_manquantes():
     # Une valeur absente chez Open-Meteo doit rester None, pas devenir 0.
     assert _payload()["series"][1]["t_min"] is None

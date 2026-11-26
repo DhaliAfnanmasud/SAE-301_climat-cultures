@@ -33,6 +33,20 @@
             </ul>
 
             <ul class="navbar-nav">
+                {% if current_user.is_authenticated %}
+                <li class="nav-item">
+                    <a class="nav-link {% if request.endpoint == 'auth.mon_compte' %}active{% endif %}"
+                       {% if request.endpoint == 'auth.mon_compte' %}aria-current="page"{% endif %}
+                       href="{{ url_for('auth.mon_compte') }}">Mon compte</a>
+                </li>
+                <li class="nav-item">
+                    {# Déconnexion en POST avec jeton CSRF (pas un simple lien) #}
+                    <form method="post" action="{{ url_for('auth.deconnexion') }}" class="d-flex">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button type="submit" class="nav-link">Déconnexion</button>
+                    </form>
+                </li>
+                {% else %}
                 <li class="nav-item">
                     <a class="nav-link {% if request.endpoint == 'auth.connexion' %}active{% endif %}"
                        {% if request.endpoint == 'auth.connexion' %}aria-current="page"{% endif %}
@@ -43,6 +57,7 @@
                        {% if request.endpoint == 'auth.inscription' %}aria-current="page"{% endif %}
                        href="{{ url_for('auth.inscription') }}">S'inscrire</a>
                 </li>
+                {% endif %}
             </ul>
 
         </div>

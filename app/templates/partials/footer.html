@@ -27,7 +27,11 @@
                         <li><a href="{{ url_for('main.home') }}">Accueil</a></li>
                         <li><a href="{{ url_for('analyse.tableau_de_bord') }}">Tableau de bord</a></li>
                         <li><a href="{{ url_for('main.carte') }}">Carte</a></li>
+                        {% if current_user.is_authenticated %}
+                        <li><a href="{{ url_for('auth.mon_compte') }}">Mon compte</a></li>
+                        {% else %}
                         <li><a href="{{ url_for('auth.connexion') }}">Se connecter</a></li>
+                        {% endif %}
                     </ul>
                 </nav>
             </div>
@@ -46,7 +50,7 @@
         </div>
 
         <p class="footer-texte small mt-4 mb-0">
-            Climat&amp;Cultures · Projet éditorial SAÉ 3.01 · 2026 ·
+            Climat&amp;Cultures · SAÉ 3.01 · 2026 ·
             Données climatiques : <a href="https://open-meteo.com/" target="_blank" rel="noopener noreferrer">Open-Meteo</a>
         </p>
     </div>
