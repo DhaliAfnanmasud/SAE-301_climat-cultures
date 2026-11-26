@@ -111,12 +111,29 @@ def test_serie_incomplete_affiche_un_avertissement():
 
 
 def test_chaine_complete_avec_le_vrai_module_de_calcul():
-    # Aucun faux calcul ici : le payload (2 jours) passe dans le vrai
-    # calculer_indicateurs de DATA. Deux jours ne font pas une année complète.
-    with _fausse_base(), patch(f"{ROUTES}.construire_payload", return_value=PAYLOAD):
+    # Deux journées situées dans la saison de culture du maïs
+    payload_saison = {
+        **PAYLOAD,
+        "series": [
+            {
+                **PAYLOAD["series"][0],
+                "date": "2049-05-01"
+            },
+            {
+                **PAYLOAD["series"][1],
+                "date": "2049-05-02"
+            },
+        ],
+    }
+
+    with _fausse_base(), patch(
+        f"{ROUTES}.construire_payload",
+        return_value=payload_saison
+    ):
         reponse = _client().get(URL)
 
     page = reponse.get_data(as_text=True)
+
     assert reponse.status_code == 200
     assert "Série incomplète" in page
     assert "Verdict : Non viable" in page
@@ -299,9 +316,12 @@ def test_indicateurs_avant_le_graphique_avec_nuance_et_source():
     ), patch(CALCUL, return_value=INDICATEURS):
         page = _client().get(URL).get_data(as_text=True)
 
+    # Normalisation des espaces et des retours à la ligne
+    page = " ".join(page.split())
+
     assert page.index("Indicateurs agroclimatiques") < page.index("graphique-climat")
     assert "à interpréter comme une tendance" in page
-    assert "Calcul sur l'année entière" in page
+    assert "Calcul des indicateurs sur la saison de culture" in page
     assert "CC BY 4.0" in page
 
 
