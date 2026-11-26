@@ -71,10 +71,10 @@ def _valeurs_sensibles_du_env(racine):
 
 
 def auditer(racine):
-    """Renvoie la liste des problèmes trouvés (liste vide = rien à signaler)."""
+    """Renvoie la liste des problèmes trouvés. Liste vide = rien à signaler."""
     problemes = []
 
-    # 1. Un .env suivi par Git, à n'importe quel endroit du dépôt
+    # Un .env suivi par Git, à n'importe quel endroit du dépôt
     for chemin in _git(racine, "ls-files").splitlines():
         if Path(chemin).name == ".env":
             problemes.append(f"Le fichier {chemin} est suivi par Git (il doit être dans .gitignore).")
@@ -82,7 +82,7 @@ def auditer(racine):
     for commit in historique_env:
         problemes.append(f"Un fichier .env a déjà été commité (commit {commit}).")
 
-    # 2. Les vraies valeurs secrètes du .env local dans l'historique ou dans .env.example
+    # Les vraies valeurs secrètes du .env local dans l'historique ou dans .env.example
     for nom, valeur in _valeurs_sensibles_du_env(racine).items():
         commits = _git(racine, "log", "--all", "--format=%h", "-S", valeur).split()
         if commits:
@@ -94,7 +94,7 @@ def auditer(racine):
         if exemple.exists() and valeur in exemple.read_text(encoding="utf-8", errors="replace"):
             problemes.append(f"La valeur de {nom} figure dans .env.example (qui est commité).")
 
-    # 3. Motifs suspects dans les lignes ajoutées (hors tests/)
+    # Motifs suspects dans les lignes ajoutées (hors tests/)
     commit_courant = fichier_courant = None
     sortie = _git(racine, "log", "--all", "-p", "--no-color", "--format=COMMIT %h", "--", ".", ":!tests")
     for ligne in sortie.splitlines():
