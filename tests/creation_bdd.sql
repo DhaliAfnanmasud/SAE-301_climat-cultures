@@ -7,6 +7,7 @@
 -- Attention : ce script supprime les tables au debut (DROP TABLE).
 -- Il ne faut plus le relancer sur la base partagee quand Fact_Indicateur
 -- contient des calculs, sinon on perd tout.
+-- Pour modifier la base partagee : ALTER TABLE uniquement.
 
 -- On supprime les anciennes tables pour pouvoir relancer le script.
 -- On desactive les cles etrangeres le temps du DROP, sinon MySQL
@@ -46,6 +47,9 @@ CREATE TABLE Dim_Commune (
 -- (GDD, jours de gel, stress thermique...).
 -- Les colonnes besoin_eau et temperature_optimale peuvent etre vides
 -- (NULL) quand on n'a pas trouve de source fiable.
+-- mois_debut / mois_fin : saison de la culture (semis -> recolte), mois inclus (1 a 12).
+-- NULL = pas de saison, le calcul se fait sur l'annee entiere (saison_debut = 1, saison_fin = 12).
+-- source_saison : d'ou viennent ces deux mois (tracabilite).
 CREATE TABLE Dim_Culture (
     id_culture               INT PRIMARY KEY AUTO_INCREMENT,
     nom_culture              VARCHAR(50) NOT NULL,
@@ -59,7 +63,10 @@ CREATE TABLE Dim_Culture (
     temperature_optimale_max DECIMAL(4,1),
     besoin_eau_min_mm        SMALLINT,
     besoin_eau_max_mm        SMALLINT,
-    ordre_priorite_mvp       TINYINT
+    ordre_priorite_mvp       TINYINT,
+    mois_debut               TINYINT,
+    mois_fin                 TINYINT,
+    source_saison            VARCHAR(255)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- Dim_Temps : les horizons de temps qu'on compare.
@@ -129,7 +136,7 @@ CREATE TABLE Utilisateur (
 -- ============================
 -- LA TABLE DE FAITS (le centre de l'etoile)
 -- Une ligne = les indicateurs d'une commune pour une culture,
--- sur un horizon, avec un modele (et pour une session ou un utilisateur).
+-- sur un horizon, avec un modele, sur une saison (et pour une session ou un utilisateur).
 -- ============================
 
 CREATE TABLE Fact_Indicateur (
@@ -146,6 +153,10 @@ CREATE TABLE Fact_Indicateur (
     jours_stress_thermique  DECIMAL(5,1),                     -- pareil, moyenne sur l'horizon
     bilan_hydrique_mm       DECIMAL(6,1),
     date_calcul             TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    -- saison utilisee pour le calcul (mois inclus). 1 et 12 = annee entiere.
+    -- NOT NULL : sinon la contrainte UNIQUE ne bloque pas les doublons.
+    saison_debut            TINYINT NOT NULL DEFAULT 1,
+    saison_fin              TINYINT NOT NULL DEFAULT 12,
 
     -- liens vers les 5 dimensions
     FOREIGN KEY (id_commune) REFERENCES Dim_Commune(id_commune),
@@ -157,8 +168,8 @@ CREATE TABLE Fact_Indicateur (
     -- (c'est le droit a l'effacement du RGPD)
     FOREIGN KEY (id_utilisateur) REFERENCES Utilisateur(id_utilisateur) ON DELETE CASCADE,
 
-    -- on ne veut pas deux fois le meme calcul pour la meme combinaison
-    UNIQUE KEY uq_fait (id_commune, id_culture, id_temps, id_modele, id_session)
+    -- on ne veut pas deux fois le meme calcul pour la meme combinaison (saison comprise)
+    UNIQUE KEY uq_fait (id_commune, id_culture, id_temps, id_modele, id_session, saison_debut, saison_fin)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- ============================================================
@@ -192,12 +203,13 @@ INSERT INTO Dim_Commune (code_insee, nom_commune, latitude, longitude, altitude_
 --    ce n'est PAS la valeur la plus prudente, qui serait -2) -> point a arbitrer, voir fiche de seuils 8.1
 --  - temperature_plafond : 30 pour le mais (cumul plafonne a 30 C), NULL pour les autres cultures
 --  Ces valeurs doivent rester identiques a CULTURES dans calcul_indicateurs.py (test_coherence_dim_culture_sql).
+--  - mois_debut / mois_fin : saison de la culture (semis -> recolte), NULL = annee entiere (colza : recolte non sourcee)
 INSERT INTO Dim_Culture
-(nom_culture, temperature_base, temperature_plafond, gdd_maturite, seuil_gel, stade_gel_reference, seuil_stress_thermique, temperature_optimale_min, temperature_optimale_max, besoin_eau_min_mm, besoin_eau_max_mm, ordre_priorite_mvp) VALUES
-('Maïs grain',      6.0, 30.0, 1600,   0.0, 'avant 5-6 feuilles',            35.0, 25.0, 30.0, NULL, NULL, 1),
-('Tournesol',       6.0, NULL, 1500,  -4.0, 'stade cotylédons (-7 à -2°C)',  34.0, 20.0, 27.0,  230,  230, 2),
-('Colza',           0.0, NULL, 2330, -15.0, 'bien implanté (létal : -18°C)', 29.0, 10.0, 30.0,  600,  650, 3),
-('Pomme de terre',  5.0, NULL, 1050,  -2.0, 'stade feuillage',               28.0, NULL, 18.0,  350,  450, 4);
+(nom_culture, temperature_base, temperature_plafond, gdd_maturite, seuil_gel, stade_gel_reference, seuil_stress_thermique, temperature_optimale_min, temperature_optimale_max, besoin_eau_min_mm, besoin_eau_max_mm, ordre_priorite_mvp, mois_debut, mois_fin, source_saison) VALUES
+('Maïs grain',      6.0, 30.0, 1600,   0.0, 'avant 5-6 feuilles',            35.0, 25.0, 30.0, NULL, NULL, 1, 4, 10, 'Terre-net : semis mi-avril à mi-mai, récolte fin septembre (semis précoces), mois_fin = 10 non sourcé précisément'),
+('Tournesol',       6.0, NULL, 1500,  -4.0, 'stade cotylédons (-7 à -2°C)',  34.0, 20.0, 27.0,  230,  230, 2, 3, 10, 'Terres Inovia guide tournesol 2026 (semis dès fin mars), Réussir (récolte fin août à mi-octobre)'),
+('Colza',           0.0, NULL, 2330, -15.0, 'bien implanté (létal : -18°C)', 29.0, 10.0, 30.0,  600,  650, 3, NULL, NULL, 'Semis en août (Terres Inovia 2025), récolte non sourcée : année entière'),
+('Pomme de terre',  5.0, NULL, 1050,  -2.0, 'stade feuillage',               28.0, NULL, 18.0,  350,  450, 4, 3, 9, 'La CAB, fiche technique pomme de terre : plantation mi-mars, récolte mi-juillet à fin septembre');
 
 -- 2 modeles climatiques : un de reference et un pour comparer
 INSERT INTO Dim_Modele (code_api, nom_complet, origine) VALUES
@@ -205,6 +217,7 @@ INSERT INTO Dim_Modele (code_api, nom_complet, origine) VALUES
 ('CMCC_CM2_VHR4', 'CMCC-CM2-VHR4', 'CMCC, Italie - modèle de comparaison');
 
 -- 2 horizons : la periode de reference et la projection 2050
+-- (la colonne saison de Dim_Temps = 'annuel' designe l'horizon, pas la saison de culture)
 INSERT INTO Dim_Temps (horizon, annee_debut, annee_fin, saison) VALUES
 ('reference', 2015, 2025, 'annuel'),
 ('2050',      2040, 2050, 'annuel');
